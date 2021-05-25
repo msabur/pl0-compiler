@@ -1,5 +1,5 @@
 /*
- * Authors: Maahee, 
+ * Authors: Maahee, Grant Allan
  */
 
 #include <stdio.h>
