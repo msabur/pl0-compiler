@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_PAS_LENGTH 500
+#define MAX_pas_LENGTH 500
 
 typedef struct instruction {
 	int opcode;
@@ -13,33 +13,42 @@ typedef struct instruction {
 	int m;
 } instruction;
 
-/* Registers for the CPU */
-int SP, BP, PC;
-instruction *IR;
+/* Registers */
+int sp, bp, pc;
+instruction ir;
 
-/* Memory area */
-int PAS[MAX_PAS_LENGTH] = {0}; // initialized to zeroes
+/* Memory */
+int pas[MAX_pas_LENGTH]; // global, automatically initialized to zeros
 
 int base(int L) {
 	int base = 0; // TODO: remove this line
-	int arb = BP;	// arb = activation record base
+	int arb = bp;	// arb = activation record base
 	while ( L > 0) { //find base L levels down
-		arb = PAS[base];
+		arb = pas[base];
 		L--;
 	}
 	return arb;
 }
 
 int main(int argc, char **argv) {
+	// load instructions into memory and initialize registers
 	FILE *inputFile = fopen(argv[1], "r");
-	char ch;
 	char line[1000];
+	sp = -1;
 	while((fgets(line, sizeof(line) - 1, inputFile)) != NULL) {
-		// TODO: store the input file into PAS array
-		printf("%s", line);
+		int op, l, m;
+		sscanf(line, "%d %d %d", &op, &l, &m);
+		pas[++sp] = op;
+		pas[++sp] = l;
+		pas[++sp] = m;
 	}
 	puts("");
 	fclose(inputFile);
+	bp = sp + 1;
+	// finished loading instructions and initializing registers
+	
+	// TODO: print initial values in the right format
+	printf("initial values: pc=%d, bp=%d, sp=%d\n", pc, bp, sp);
 }
 
 /*
