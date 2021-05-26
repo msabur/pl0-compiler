@@ -21,10 +21,9 @@ instruction ir;
 int pas[MAX_pas_LENGTH]; // global, automatically initialized to zeros
 
 int base(int L) {
-	int base = 0; // TODO: remove this line
 	int arb = bp;	// arb = activation record base
 	while ( L > 0) { //find base L levels down
-		arb = pas[base];
+		arb = pas[arb];
 		L--;
 	}
 	return arb;
@@ -47,8 +46,8 @@ int main(int argc, char **argv) {
 	bp = sp + 1;
 	// finished loading instructions and initializing registers
 	
-	// TODO: print initial values in the right format
-	printf("initial values: pc=%d, bp=%d, sp=%d\n", pc, bp, sp);
+	puts("                PC   BP   SP   stack");
+	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
 }
 
 /*
