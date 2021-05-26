@@ -51,4 +51,5 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-.~lock.HW1InstructionsSu2021.doc#
+# libreoffice lock files
+*.~lock*
