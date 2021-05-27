@@ -8,7 +8,7 @@
 #define MAX_pas_LENGTH 500
 
 typedef struct instruction {
-	int opcode;
+	int op;
 	int l;
 	int m;
 } instruction;
@@ -48,6 +48,117 @@ int main(int argc, char **argv) {
 	
 	puts("                PC   BP   SP   stack");
 	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
+	
+	/* make it easy to refer to opcodes by their name or number */
+	enum Opcodes{LIT=1, OPR, LOD, STO, CAL, INC, JMP, JPC, SYS};
+	enum Oprcodes{RTN, NEG, ADD, SUB, MUL, DIV, ODD, MOD, EQL, NEQ, LSS,
+		LEQ, GTR, GEQ};
+	// TODO make oprcodeName
+	const char *opName[] = {
+		[LIT] = "LIT",
+		[OPR] = "OPR",
+		[LOD] = "LOD",
+		[STO] = "STO",
+		[CAL] = "CAL",
+		[INC] = "INC",
+		[JMP] = "JMP",
+		[JPC] = "JPC",
+		[SYS] = "SYS",
+		// adding some extra elements to debug out-of-bounds accesses
+		"NO1","NO2","NO3","NO4","NO5","NO6","NO7","NO8","NO9","NO0"
+	};
+	// run the instructions
+	int halt = 1; // is set to 0 at end of program
+	while(halt != 0) {
+		// fetch cycle
+		ir.op = pas[pc++];
+		ir.l = pas[pc++];
+		ir.m = pas[pc++];
+		
+		// execute cycle
+		int lineNumber = pc - 3;
+		if(ir.op == JMP) ir.m *= 3;
+		
+		if(ir.op == LIT) {
+			sp = sp + 1;
+			pas[sp] = ir.m;
+		} else if(ir.op == OPR) {
+			if(ir.m == RTN) {
+				sp = bp - 1;
+				bp = pas[sp + 2];
+				pc = pas[sp + 3];
+			} else if(ir.m == NEG) {
+				pas[sp] = -1 * pas[sp];
+			} else if(ir.m == ADD) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] + pas[sp + 1];
+			} else if(ir.m == SUB) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] - pas[sp + 1];
+			} else if(ir.m == MUL) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] * pas[sp + 1];
+			} else if(ir.m == DIV) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] / pas[sp + 1];
+			} else if(ir.m == ODD) {
+				pas[sp] = pas[sp] % 2;
+			} else if(ir.m == MOD) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] % pas[sp + 1];
+			} else if(ir.m == EQL) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] == pas[sp + 1];
+			} else if(ir.m == NEQ) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] != pas[sp + 1];
+			} else if(ir.m == LSS) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] < pas[sp + 1];
+			} else if(ir.m == LEQ) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] <= pas[sp + 1];
+			} else if(ir.m == GTR) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] > pas[sp + 1];
+			} else if(ir.m == GEQ) {
+				sp = sp - 1;
+				pas[sp] = pas[sp] >= pas[sp + 1];
+			}
+		} else if(ir.op == LOD) {
+			sp = sp + 1;
+			pas[sp] = pas[base(ir.l) + ir.m];
+		} else if(ir.op == STO) {
+			pas[base(ir.l) + ir.m] = pas[sp];
+			sp = sp - 1;
+		} else if(ir.op == CAL) {
+			pas[sp + 1] = base(ir.l); // static link (SL)
+			pas[sp + 2] = bp;        // dynamic link (DL)
+			pas[sp + 3] = pc;       // return address (RA)
+			bp = sp + 1;
+			pc = ir.m;
+		} else if(ir.op == INC) {
+			sp = sp + ir.m;
+		} else if(ir.op == JMP) {
+			pc = ir.m; // m was already multiplied by 3, in line 78
+		} else if(ir.op == JPC) {
+			if(pas[sp] == 0) pc = ir.m;
+			sp = sp - 1;
+		} else if(ir.op == SYS) {
+			if(ir.m == 1) {
+				printf("Output result is: %d\n", pas[sp]);
+				sp = sp - 1;
+			} else if(ir.m == 2) {
+				sp = sp + 1;
+				printf("Please Enter an Integer: ");
+				scanf("%d", &pas[sp]);
+			} else if(ir.m == 3) {
+				halt = 0;
+			}
+		}
+		printf("%2d %s  %d %d %d %d %d\n",
+			lineNumber, opName[ir.op], ir.l, ir.m, pc, bp, sp);
+	}
 }
 
 /*
