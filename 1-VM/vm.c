@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
 	
 	puts("                PC   BP   SP   stack");
 	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
+	puts("");
 	
 	/* make it easy to refer to instructions by their name or number */
 	enum Opcodes{LIT=1, OPR, LOD, STO, CAL, INC, JMP, JPC, SYS};
@@ -75,7 +76,7 @@ int main(int argc, char **argv) {
 		/* execute cycle */
 		int lineNumber = pc - 3;
 		// note: lineNumber is triple the actual line number in the file
-		if(ir.op == JMP) ir.m *= 3;
+		//~ if(ir.op == JMP) ir.m *= 3;
 		
 		if(ir.op == LIT) {
 			sp = sp + 1;
@@ -138,9 +139,9 @@ int main(int argc, char **argv) {
 		} else if(ir.op == INC) {
 			sp = sp + ir.m;
 		} else if(ir.op == JMP) {
-			pc = ir.m; // m was already multiplied by 3, in line 78
+			pc = ir.m;
 		} else if(ir.op == JPC) {
-			if(pas[sp] == 0) pc = ir.m;
+			if(pas[sp] == 1) pc = ir.m;
 			sp = sp - 1;
 		} else if(ir.op == SYS) {
 			if(ir.m == 1) {
@@ -154,7 +155,7 @@ int main(int argc, char **argv) {
 				halt = 0;
 			}
 		}
-		char *act = (ir.op == OPR) ? oprName[ir.op] : opName[ir.op];
+		char *act = (ir.op == OPR) ? oprName[ir.m] : opName[ir.op];
 		printf("%2d %s %2d %2d    %2d   %2d   %2d\n",
 			lineNumber, act, ir.l, ir.m, pc, bp, sp);
 	}
