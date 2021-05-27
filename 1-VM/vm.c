@@ -49,34 +49,32 @@ int main(int argc, char **argv) {
 	puts("                PC   BP   SP   stack");
 	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
 	
-	/* make it easy to refer to opcodes by their name or number */
+	/* make it easy to refer to instructions by their name or number */
 	enum Opcodes{LIT=1, OPR, LOD, STO, CAL, INC, JMP, JPC, SYS};
 	enum Oprcodes{RTN, NEG, ADD, SUB, MUL, DIV, ODD, MOD, EQL, NEQ, LSS,
 		LEQ, GTR, GEQ};
-	// TODO make oprcodeName
-	const char *opName[] = {
-		[LIT] = "LIT",
-		[OPR] = "OPR",
-		[LOD] = "LOD",
-		[STO] = "STO",
-		[CAL] = "CAL",
-		[INC] = "INC",
-		[JMP] = "JMP",
-		[JPC] = "JPC",
-		[SYS] = "SYS",
-		// adding some extra elements to debug out-of-bounds accesses
+	char *opName[] = {
+		[1] = "LIT", "OPR", "LOD", "STO", "CAL", "INC", "JMP", "JPC",
+		"SYS",
+		// some extra elements to debug out-of-bounds accesses
 		"NO1","NO2","NO3","NO4","NO5","NO6","NO7","NO8","NO9","NO0"
 	};
+	char *oprName[] = {
+		"RTN", "NEG", "ADD", "SUB", "MUL", "DIV", "ODD", "MOD", "EQL",
+		"NEQ", "LSS", "LEQ", "GTR", "GEQ"
+	};
+	
 	// run the instructions
 	int halt = 1; // is set to 0 at end of program
 	while(halt != 0) {
-		// fetch cycle
+		/* fetch cycle */
 		ir.op = pas[pc++];
 		ir.l = pas[pc++];
 		ir.m = pas[pc++];
 		
-		// execute cycle
+		/* execute cycle */
 		int lineNumber = pc - 3;
+		// note: lineNumber is triple the actual line number in the file
 		if(ir.op == JMP) ir.m *= 3;
 		
 		if(ir.op == LIT) {
@@ -156,8 +154,9 @@ int main(int argc, char **argv) {
 				halt = 0;
 			}
 		}
-		printf("%2d %s  %d %d %d %d %d\n",
-			lineNumber, opName[ir.op], ir.l, ir.m, pc, bp, sp);
+		char *act = (ir.op == OPR) ? oprName[ir.op] : opName[ir.op];
+		printf("%2d %s %2d %2d    %2d   %2d   %2d\n",
+			lineNumber, act, ir.l, ir.m, pc, bp, sp);
 	}
 }
 
