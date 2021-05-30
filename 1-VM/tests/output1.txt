@@ -21,4 +21,3 @@ Please Enter an Integer: 3
 Output result is: 3
 54 SYS  0  1    57   60   64   0 0 0 0 12
 57 SYS  0  3    60   60   64   0 0 0 0 12
-

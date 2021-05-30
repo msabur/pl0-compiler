@@ -41,7 +41,6 @@ int main(int argc, char **argv) {
 		pas[++sp] = l;
 		pas[++sp] = m;
 	}
-	puts("");
 	fclose(inputFile);
 	bp = sp + 1;
 	// finished loading instructions and initializing registers
@@ -65,6 +64,8 @@ int main(int argc, char **argv) {
 		"NEQ", "LSS", "LEQ", "GTR", "GEQ"
 	};
 	
+	int curLevel = 0;
+	int isBorder[MAX_pas_LENGTH] = {0};
 	// run the instructions
 	int halt = 1; // is set to 0 at end of program
 	while(halt != 0) {
@@ -86,6 +87,7 @@ int main(int argc, char **argv) {
 				sp = bp - 1;
 				bp = pas[sp + 2];
 				pc = pas[sp + 3];
+				curLevel--;
 			} else if(ir.m == NEG) {
 				pas[sp] = -1 * pas[sp];
 			} else if(ir.m == ADD) {
@@ -136,6 +138,8 @@ int main(int argc, char **argv) {
 			pas[sp + 3] = pc;       // return address (RA)
 			bp = sp + 1;
 			pc = ir.m;
+			curLevel++;
+			isBorder[sp + 1] = 1;
 		} else if(ir.op == INC) {
 			sp = sp + ir.m;
 		} else if(ir.op == JMP) {
@@ -156,8 +160,14 @@ int main(int argc, char **argv) {
 			}
 		}
 		char *act = (ir.op == OPR) ? oprName[ir.m] : opName[ir.op];
-		printf("%2d %s %2d %2d    %2d   %2d   %2d\n",
+		printf("%2d %s %2d %2d    %2d   %2d   %2d  ",
 			lineNumber, act, ir.l, ir.m, pc, bp, sp);
+		
+		for(int i = base(curLevel); i <= sp; i++) {
+			if(isBorder[i]) printf(" %s", "|");
+			printf(" %-2d", pas[i]);
+		}
+		puts("");
 	}
 }
 
