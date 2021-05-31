@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
 	fclose(inputFile);
 	bp = sp + 1;
 	// finished loading instructions and initializing registers
+	int initialBase = bp;
 	
 	puts("                PC   BP   SP   stack");
 	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
@@ -85,6 +86,7 @@ int main(int argc, char **argv) {
 		} else if(ir.op == OPR) {
 			if(ir.m == RTN) {
 				sp = bp - 1;
+				isBorder[bp] = 0;
 				bp = pas[sp + 2];
 				pc = pas[sp + 3];
 				curLevel--;
@@ -139,7 +141,7 @@ int main(int argc, char **argv) {
 			bp = sp + 1;
 			pc = ir.m;
 			curLevel++;
-			isBorder[sp + 1] = 1;
+			isBorder[bp] = 1;
 		} else if(ir.op == INC) {
 			sp = sp + ir.m;
 		} else if(ir.op == JMP) {
@@ -163,7 +165,7 @@ int main(int argc, char **argv) {
 		printf("%2d %s %2d %2d    %2d   %2d   %2d  ",
 			lineNumber, act, ir.l, ir.m, pc, bp, sp);
 		
-		for(int i = base(curLevel); i <= sp; i++) {
+		for(int i = initialBase; i <= sp; i++) {
 			if(isBorder[i]) printf(" %s", "|");
 			printf(" %-2d", pas[i]);
 		}
