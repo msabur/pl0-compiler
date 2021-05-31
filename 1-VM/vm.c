@@ -32,6 +32,10 @@ int base(int L) {
 int main(int argc, char **argv) {
 	// load instructions into memory and initialize registers
 	FILE *inputFile = fopen(argv[1], "r");
+	if(inputFile == NULL) { // failed to open file
+		perror("Opening input file");
+		return 1;
+	}
 	char line[1000];
 	sp = -1;
 	while((fgets(line, sizeof(line) - 1, inputFile)) != NULL) {
