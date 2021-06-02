@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
 				switch (ir.m) {
 					case RTN:
 						sp = bp - 1;
-						isBorder[sp] = 0;
+						isBorder[bp] = 0;
 						bp = pas[sp + 2];
 						pc = pas[sp + 3];
 						curLevel--;
