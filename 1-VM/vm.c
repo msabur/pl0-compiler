@@ -66,7 +66,8 @@ int main(int argc, char** argv) {
 	// pas in sets of three [op],[l],[m], [op],[l],[m],...
 	while ((fgets(line, sizeof(line) - 1, inputFile)) != NULL) {
 		int op, l, m;
-		sscanf(line, "%d %d %d", &op, &l, &m);
+		int n = sscanf(line, "%d %d %d", &op, &l, &m);
+		if (n != 3) continue; // ignore empty lines
 		pas[++sp] = op;
 		pas[++sp] = l;
 		pas[++sp] = m;
