@@ -48,7 +48,7 @@ int base(int L) {
 int main(int argc, char** argv) {
 	/* Load instructions into memory and initialize registers */
 	// Open input file to read
-	FILE* inputFile = fopen("input.txt", "r");
+	FILE* inputFile = fopen(argv[1], "r");
 
     // Create an array to take input from the input file
 	char line[1000];
