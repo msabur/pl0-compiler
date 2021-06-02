@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 	if (inputFile == NULL) {
 		perror("Opening file");
 		exit(EXIT_FAILURE);
-	}
+	}	
 
 	// Create an array to take input from the input file
 	char line[1000];
@@ -120,119 +120,167 @@ int main(int argc, char** argv) {
 		int lineNumber = pc - 3;
 		// note: lineNumber is triple the actual line number in the file
 
-		if (ir.op == LIT) {
-			sp = sp + 1;
-			pas[sp] = ir.m;
-		}
-		else if (ir.op == OPR) {
-			if (ir.m == RTN) {
-				sp = bp - 1;
-				isBorder[sp] = 0;
-				bp = pas[sp + 2];
-				pc = pas[sp + 3];
-				curLevel--;
-			}
-			else if (ir.m == NEG) {
-				pas[sp] = -1 * pas[sp];
-			}
-			else if (ir.m == ADD) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] + pas[sp + 1];
-			}
-			else if (ir.m == SUB) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] - pas[sp + 1];
-			}
-			else if (ir.m == MUL) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] * pas[sp + 1];
-			}
-			else if (ir.m == DIV) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] / pas[sp + 1];
-			}
-			else if (ir.m == ODD) {
-				pas[sp] = pas[sp] % 2;
-			}
-			else if (ir.m == MOD) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] % pas[sp + 1];
-			}
-			else if (ir.m == EQL) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] == pas[sp + 1];
-			}
-			else if (ir.m == NEQ) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] != pas[sp + 1];
-			}
-			else if (ir.m == LSS) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] < pas[sp + 1];
-			}
-			else if (ir.m == LEQ) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] <= pas[sp + 1];
-			}
-			else if (ir.m == GTR) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] > pas[sp + 1];
-			}
-			else if (ir.m == GEQ) {
-				sp = sp - 1;
-				pas[sp] = pas[sp] >= pas[sp + 1];
-			}
-		}
-		else if (ir.op == LOD) {
-			sp = sp + 1;
-			pas[sp] = pas[base(ir.l) + ir.m];
-		}
-		else if (ir.op == STO) {
-			pas[base(ir.l) + ir.m] = pas[sp];
-			sp = sp - 1;
-		}
-		else if (ir.op == CAL) {
-			pas[sp + 1] = base(ir.l); // static link (SL)
-			pas[sp + 2] = bp;        // dynamic link (DL)
-			pas[sp + 3] = pc;       // return address (RA)
-			bp = sp + 1;
-			pc = ir.m;
-			curLevel++;
-			isBorder[sp + 1] = 1;
-		}
-		else if (ir.op == INC) {
-			sp = sp + ir.m;
-		}
-		else if (ir.op == JMP) {
-			pc = ir.m;
-		}
-		else if (ir.op == JPC) {
-			if (pas[sp] == 1) pc = ir.m;
-			sp = sp - 1;
-		}
-		else if (ir.op == SYS) {
-			if (ir.m == 1) {
-				printf("Output result is: %d\n", pas[sp]);
-				sp = sp - 1;
-			}
-			else if (ir.m == 2) {
+		// Use switch for the instructions
+		switch (ir.op) {
+			case LIT:
 				sp = sp + 1;
-				printf("Please Enter an Integer: ");
-				scanf("%d", &pas[sp]);
-				printf("\n");
-			}
-			else if (ir.m == 3) {
-				halt = 0;
-			}
-		}
+				pas[sp] = ir.m;
+				break;
+
+			case OPR:
+				switch (ir.m) {
+					case RTN:
+						sp = bp - 1;
+						isBorder[sp] = 0;
+						bp = pas[sp + 2];
+						pc = pas[sp + 3];
+						curLevel--;
+						break;
+
+					case NEG:
+						pas[sp] = -1 * pas[sp];
+						break;
+
+					case ADD:
+						sp = sp - 1;
+						pas[sp] = pas[sp] + pas[sp + 1];
+						break;
+
+					case SUB:
+						sp = sp - 1;
+						pas[sp] = pas[sp] - pas[sp + 1];
+						break;
+
+					case MUL:
+						sp = sp - 1;
+						pas[sp] = pas[sp] * pas[sp + 1];
+						break;
+
+					case DIV:
+						sp = sp - 1;
+						pas[sp] = pas[sp] / pas[sp + 1];
+						break;
+
+					case ODD:
+						pas[sp] = pas[sp] % 2;
+						break;
+
+					case MOD:
+						sp = sp - 1;
+						pas[sp] = pas[sp] % pas[sp + 1];
+						break;
+
+					case EQL:
+						sp = sp - 1;
+						pas[sp] = pas[sp] == pas[sp + 1];
+						break;
+
+					case NEQ:
+						sp = sp - 1;
+						pas[sp] = pas[sp] != pas[sp + 1];
+						break;
+
+					case LSS:
+						sp = sp - 1;
+						pas[sp] = pas[sp] < pas[sp + 1];
+						break;
+
+					case LEQ:
+						sp = sp - 1;
+						pas[sp] = pas[sp] <= pas[sp + 1];
+						break;
+
+					case GTR:
+						sp = sp - 1;
+						pas[sp] = pas[sp] > pas[sp + 1];
+						break;
+
+					case GEQ:
+						sp = sp - 1;
+						pas[sp] = pas[sp] >= pas[sp + 1];
+						break;
+
+					default:
+						printf("Defaulted in OPR.\n");
+						break;
+
+				} // End of OPR switch
+				break;
+
+			case LOD:
+				sp = sp + 1;
+				pas[sp] = pas[base(ir.l) + ir.m];
+				break;
+
+			case STO:
+				pas[base(ir.l) + ir.m] = pas[sp];
+				sp = sp - 1;
+				break;
+
+			case CAL:
+				pas[sp + 1] = base(ir.l); // static link (SL)
+				pas[sp + 2] = bp;        // dynamic link (DL)
+				pas[sp + 3] = pc;       // return address (RA)
+				bp = sp + 1;
+				pc = ir.m;
+				curLevel++;
+				isBorder[sp + 1] = 1;
+				break;
+
+			case INC:
+				sp = sp + ir.m;
+				break;
+
+			case JMP:
+				pc = ir.m;
+				break;
+
+			case JPC:
+				if (pas[sp] == 1) pc = ir.m;
+				sp = sp - 1;
+				break;
+
+			case SYS:
+				switch (ir.m) {
+					case 1:
+						printf("Output result is: %d\n", pas[sp]);
+						sp = sp - 1;
+						break;
+
+					case 2:
+						sp = sp + 1;
+						printf("Please Enter an Integer: ");
+						scanf("%d", &pas[sp]);
+						printf("\n");
+						break;
+
+					case 3:
+						halt = 0;
+						break;
+
+					default:
+						printf("Defaulted in SYS.\n");
+						break;
+
+				} // End of SYS switch
+				break;
+
+			default:
+				printf("Defaulted in instructions.\n");
+				break;
+
+		} // End of instructions switch
+
 		char* act = (ir.op == OPR) ? oprName[ir.m] : opName[ir.op];
-		printf("%2d %s %2d %2d    %2d   %2d   %2d  ",
+
+		printf("%2d %s %-4d%-5d%-5d%-5d%-5d",
 				lineNumber, act, ir.l, ir.m, pc, bp, sp);
 
 		for (int i = initialBase; i <= sp; i++) {
-			if (isBorder[i]) printf(" %s", "|");
-			printf(" %-2d", pas[i]);
+			if (isBorder[i]) printf("%s", "|");
+			printf("%-2d ", pas[i]);
 		}
+
 		puts("");
 	}
 }
