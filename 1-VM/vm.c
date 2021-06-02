@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 	if (inputFile == NULL) {
 		perror("Opening file");
 		exit(EXIT_FAILURE);
-	}	
+	}
 
 	// Create an array to take input from the input file
 	char line[1000];
@@ -305,3 +305,4 @@ Rubric:
 /*
    c) Student names should be written in the header comment of each source code file, in the readme, and in the comments of the submission
    */
+
