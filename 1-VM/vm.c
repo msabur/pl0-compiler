@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 	
 	puts("                PC   BP   SP   stack");
 	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
-	puts("");
+	//puts("");
 	
 	/* make it easy to refer to instructions by their name or number */
 	enum Opcodes{LIT=1, OPR, LOD, STO, CAL, INC, JMP, JPC, SYS};
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
 				sp = sp - 1;
 			} else if(ir.m == 2) {
 				sp = sp + 1;
-				printf("Please Enter an Integer: ");
+				printf("Please Enter an Integer: \n");
 				scanf("%d", &pas[sp]);
 			} else if(ir.m == 3) {
 				halt = 0;
