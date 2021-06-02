@@ -4,7 +4,7 @@ HW1, due June 4, 2021 by 11:59 p.m.
 - Grant Allan 
 
 # To compile
-make
+gcc vm.c
 
 # To run
-./vm <file name>
+./a.out <name of the .txt being used as the input file>
