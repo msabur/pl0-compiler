@@ -2,7 +2,7 @@
  * Summer 2021
  * Homework #1 (P-Machine)
  * Authors: Maahee, Grant Allan
- * 6/4/2021
+ * Due: 6/4/2021
  */
 
 #include <stdio.h>
@@ -212,8 +212,9 @@ int main(int argc, char** argv) {
 			}
 			else if (ir.m == 2) {
 				sp = sp + 1;
-				printf("Please Enter an Integer: \n");
+				printf("Please Enter an Integer: ");
 				scanf("%d", &pas[sp]);
+				printf("\n");
 			}
 			else if (ir.m == 3) {
 				halt = 0;
