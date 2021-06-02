@@ -1,7 +1,8 @@
-Hom, due June 4, 2021 by 11:59 p.m.
-# Authors
-- Maahee
-- Grant Allan 
+COP 3402 - Systems Software
+Summer 2021
+Homework #1 (P-Machine)
+Authors: Maahee, Grant Allan
+Due: 6/4/2021
 
 # To compile
 gcc -o a vm.c
