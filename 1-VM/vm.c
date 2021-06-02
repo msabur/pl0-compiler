@@ -11,7 +11,7 @@
 #define MAX_pas_LENGTH 500
 
 typedef struct instruction {
-    // Operation Code
+	// Operation Code
 	int op;
 
 	// Lexicographical
@@ -50,14 +50,20 @@ int main(int argc, char** argv) {
 	// Open input file to read
 	FILE* inputFile = fopen(argv[1], "r");
 
-    // Create an array to take input from the input file
+	// Output an error message if the file couldn't be opened
+	if (inputFile == NULL) {
+		perror("Opening file");
+		exit(EXIT_FAILURE);
+	}
+
+	// Create an array to take input from the input file
 	char line[1000];
 
-    // Initialize the stack pointer
+	// Initialize the stack pointer
 	sp = -1;
 
-    // Run through the entire input file. Store the values in
-    // pas in sets of three [op],[l],[m], [op],[l],[m],...
+	// Run through the entire input file. Store the values in
+	// pas in sets of three [op],[l],[m], [op],[l],[m],...
 	while ((fgets(line, sizeof(line) - 1, inputFile)) != NULL) {
 		int op, l, m;
 		sscanf(line, "%d %d %d", &op, &l, &m);
@@ -78,17 +84,15 @@ int main(int argc, char** argv) {
 
 	/* This is all to make it easy to refer to instructions by their name or number */
 	enum Opcodes {
-	    LIT = 1, OPR, LOD, STO, CAL, INC, JMP, JPC, SYS
-    };
+		LIT = 1, OPR, LOD, STO, CAL, INC, JMP, JPC, SYS
+	};
 
 	enum Oprcodes {
-	    RTN, NEG, ADD, SUB, MUL, DIV, ODD, MOD, EQL, NEQ, LSS, LEQ, GTR, GEQ
-    };
+		RTN, NEG, ADD, SUB, MUL, DIV, ODD, MOD, EQL, NEQ, LSS, LEQ, GTR, GEQ
+	};
 
 	char* opName[] = {
 		[1] = "LIT", "OPR", "LOD", "STO", "CAL", "INC", "JMP", "JPC", "SYS",
-		// Some extra elements to debug out-of-bounds accesses
-		"NO1","NO2","NO3","NO4","NO5","NO6","NO7","NO8","NO9","NO0"
 	};
 
 	char* oprName[] = {
@@ -96,7 +100,7 @@ int main(int argc, char** argv) {
 		"NEQ", "LSS", "LEQ", "GTR", "GEQ"
 	};
 
-    // Helper variables to help in printing the stack
+	// Helper variables to help in printing the stack
 	int curLevel = 0;
 	int isBorder[MAX_pas_LENGTH] = { 0 };
 	int initialBase = bp;
@@ -222,7 +226,7 @@ int main(int argc, char** argv) {
 		}
 		char* act = (ir.op == OPR) ? oprName[ir.m] : opName[ir.op];
 		printf("%2d %s %2d %2d    %2d   %2d   %2d  ",
-			lineNumber, act, ir.l, ir.m, pc, bp, sp);
+				lineNumber, act, ir.l, ir.m, pc, bp, sp);
 
 		for (int i = initialBase; i <= sp; i++) {
 			if (isBorder[i]) printf(" %s", "|");
@@ -250,5 +254,5 @@ Rubric:
 */
 
 /*
-c) Student names should be written in the header comment of each source code file, in the readme, and in the comments of the submission
-*/
+   c) Student names should be written in the header comment of each source code file, in the readme, and in the comments of the submission
+   */
