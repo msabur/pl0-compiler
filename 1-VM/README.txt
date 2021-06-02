@@ -8,7 +8,7 @@ Due: 6/4/2021
 gcc -o a vm.c
 
 # To run
-./a <name of the .txt being used as the input file>
+./a <path to input file>
 
 Example:
 ./a input.txt
