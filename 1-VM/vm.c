@@ -75,7 +75,6 @@ int main(int argc, char** argv) {
 	/* Finished with loading instructions and initializing registers */
 	puts("                PC   BP   SP   stack");
 	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
-	puts("");
 
 	/* This is all to make it easy to refer to instructions by their name or number */
 	enum Opcodes {
@@ -123,6 +122,7 @@ int main(int argc, char** argv) {
 		else if (ir.op == OPR) {
 			if (ir.m == RTN) {
 				sp = bp - 1;
+				isBorder[sp] = 0;
 				bp = pas[sp + 2];
 				pc = pas[sp + 3];
 				curLevel--;
@@ -212,7 +212,7 @@ int main(int argc, char** argv) {
 			}
 			else if (ir.m == 2) {
 				sp = sp + 1;
-				printf("Please Enter an Integer: ");
+				printf("Please Enter an Integer: \n");
 				scanf("%d", &pas[sp]);
 			}
 			else if (ir.m == 3) {
