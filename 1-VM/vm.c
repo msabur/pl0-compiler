@@ -96,9 +96,10 @@ int main(int argc, char** argv) {
 		"NEQ", "LSS", "LEQ", "GTR", "GEQ"
 	};
 
-    // Create curLevel and isBorder
+    // Helper variables to help in printing the stack
 	int curLevel = 0;
 	int isBorder[MAX_pas_LENGTH] = { 0 };
+	int initialBase = bp;
 
 	// halt is set to zero at the end of a successfully run program
 	int halt = 1;
@@ -113,7 +114,6 @@ int main(int argc, char** argv) {
 		/* Execute Cycle */
 		int lineNumber = pc - 3;
 		// note: lineNumber is triple the actual line number in the file
-		//~ if(ir.op == JMP) ir.m *= 3;
 
 		if (ir.op == LIT) {
 			sp = sp + 1;
@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
 		printf("%2d %s %2d %2d    %2d   %2d   %2d  ",
 			lineNumber, act, ir.l, ir.m, pc, bp, sp);
 
-		for (int i = base(curLevel); i <= sp; i++) {
+		for (int i = initialBase; i <= sp; i++) {
 			if (isBorder[i]) printf(" %s", "|");
 			printf(" %-2d", pas[i]);
 		}
