@@ -283,8 +283,8 @@ int main(int argc, char **argv)
 
 		case CAL:
 			pas[sp + 1] = base(ir.l); // static link (SL)
-			pas[sp + 2] = bp;		  // dynamic link (DL)
-			pas[sp + 3] = pc;		  // return address (RA)
+			pas[sp + 2] = bp;         // dynamic link (DL)
+			pas[sp + 3] = pc;         // return address (RA)
 			bp = sp + 1;
 			pc = ir.m;
 			curLevel++;
