@@ -176,10 +176,11 @@ int main(int argc, char **argv)
 		ir.l = pas[pc++];
 		ir.m = pas[pc++];
 
+
 		/* Execute Cycle */
-		int lineNumber = pc - 3;
-		
+
 		// Note: lineNumber is triple the actual line number in the file
+		int lineNumber = pc - 3;
 
 		// Use switch for the instructions
 		switch (ir.op)
