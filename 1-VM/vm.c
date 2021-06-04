@@ -48,7 +48,7 @@ int base(int L)
 		arb = pas[arb];
 		L--;
 	}
-	
+
 	return arb;
 }
 
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 		// ignore empty lines
 		if (n != 3)
 			continue;
-		
+
 		pas[++sp] = op;
 		pas[++sp] = l;
 		pas[++sp] = m;
@@ -179,8 +179,7 @@ int main(int argc, char **argv)
 
 		/* Execute Cycle */
 
-		// Note: lineNumber is triple the actual line number in the file
-		int lineNumber = pc - 3;
+		int address = pc - 3;
 
 		// Use switch for the instructions
 		switch (ir.op)
@@ -226,7 +225,11 @@ int main(int argc, char **argv)
 				break;
 
 			case ODD:
-				pas[sp] = pas[sp] % 2;
+				//pas[sp] = pas[sp] % 2;
+				if(1 & pas[sp])
+					pas[sp] = 0;
+				else
+					pas[sp] = 1;
 				break;
 
 			case MOD:
@@ -236,32 +239,56 @@ int main(int argc, char **argv)
 
 			case EQL:
 				sp = sp - 1;
-				pas[sp] = pas[sp] == pas[sp + 1];
+				//pas[sp] = pas[sp] == pas[sp + 1];
+				if (pas[sp] == pas[sp + 1])
+					pas[sp] = 0;
+				else
+					pas[sp] = 1;
 				break;
 
 			case NEQ:
 				sp = sp - 1;
-				pas[sp] = pas[sp] != pas[sp + 1];
+				//pas[sp] = pas[sp] != pas[sp + 1];
+				if (pas[sp] != pas[sp + 1])
+					pas[sp] = 0;
+				else
+					pas[sp] = 1;
 				break;
 
 			case LSS:
 				sp = sp - 1;
-				pas[sp] = pas[sp] < pas[sp + 1];
+				//pas[sp] = pas[sp] < pas[sp + 1];
+				if(pas[sp] < pas[sp + 1])
+					pas[sp] = 0;
+				else
+					pas[sp] = 1;
 				break;
 
 			case LEQ:
 				sp = sp - 1;
-				pas[sp] = pas[sp] <= pas[sp + 1];
+				//pas[sp] = pas[sp] <= pas[sp + 1];
+				if(pas[sp] <= pas[sp + 1])
+					pas[sp] = 0;
+				else
+					pas[sp] = 1;
 				break;
 
 			case GTR:
 				sp = sp - 1;
-				pas[sp] = pas[sp] > pas[sp + 1];
+				//pas[sp] = pas[sp] > pas[sp + 1];
+				if(pas[sp] > pas[sp + 1])
+					pas[sp] = 0;
+				else
+					pas[sp] = 1;
 				break;
 
 			case GEQ:
 				sp = sp - 1;
-				pas[sp] = pas[sp] >= pas[sp + 1];
+				//pas[sp] = pas[sp] >= pas[sp + 1];
+				if(pas[sp] >= pas[sp + 1])
+					pas[sp] = 0;
+				else
+					pas[sp] = 1;
 				break;
 
 			default:
@@ -338,16 +365,16 @@ int main(int argc, char **argv)
 		} // End of instructions switch
 
 		char *act = (ir.op == OPR) ? oprName[ir.m] : opName[ir.op];
-		
+
 		/* Print to the output table */
 		printf("%2d %s %-4d%-5d%-5d%-5d%-5d",
-			   lineNumber, act, ir.l, ir.m, pc, bp, sp);
+				address, act, ir.l, ir.m, pc, bp, sp);
 
 		for (int i = initialBase; i <= sp; i++)
 		{
 			if (isBorder[i])
-				printf("%s", "|");
-			printf("%-2d ", pas[i]);
+				printf("%s ", "|");
+			printf("%d ", pas[i]);
 		}
 
 		puts("");
@@ -372,5 +399,5 @@ Rubric:
 */
 
 /*
-     - c) Student names should be written in the header comment of each source code file, in the readme, and in the comments of the submission
-*/
+   - c) Student names should be written in the header comment of each source code file, in the readme, and in the comments of the submission
+   */
