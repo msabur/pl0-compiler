@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gcc vm.c
+make
 compiled=$?
 if [[ $compiled != 0 ]]; then
 	echo "does not compile"
@@ -8,7 +8,7 @@ if [[ $compiled != 0 ]]; then
 fi
 
 echo -n "Testing test1.txt : "
-./a.out test1.txt <<< '3' > output.txt
+./vm test1.txt <<< '3' > output.txt
 executed=$?
 if [[ $executed !=  0 ]]; then
 	echo "crashed"
@@ -24,7 +24,7 @@ fi
 
 
 echo -n "Testing fact.txt : "
-./a.out fact.txt <<< '5' > output.txt
+./vm fact.txt <<< '5' > output.txt
 executed=$?
 if [[ $executed !=  0 ]]; then
 	echo "crashed"
