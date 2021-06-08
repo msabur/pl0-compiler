@@ -194,10 +194,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 6: // ODD
-				if(1 & pas[sp])
-					pas[sp] = TRUE;
-				else
-					pas[sp] = FALSE;
+				pas[sp] = (1 & pas[sp]) ? TRUE : FALSE;
 				break;
 
 			case 7: // MOD
@@ -207,50 +204,32 @@ int main(int argc, char **argv)
 
 			case 8: // EQL
 				sp = sp - 1;
-				if (pas[sp] == pas[sp + 1])
-					pas[sp] = TRUE;
-				else
-					pas[sp] = FALSE;
+				pas[sp] = (pas[sp] == pas[sp + 1]) ? TRUE : FALSE;
 				break;
 
 			case 9: // NEQ
 				sp = sp - 1;
-				if (pas[sp] != pas[sp + 1])
-					pas[sp] = TRUE;
-				else
-					pas[sp] = FALSE;
+				pas[sp] = (pas[sp] != pas[sp + 1]) ? TRUE : FALSE;
 				break;
 
 			case 10: // LSS
 				sp = sp - 1;
-				if(pas[sp] < pas[sp + 1])
-					pas[sp] = TRUE;
-				else
-					pas[sp] = FALSE;
+				pas[sp] = (pas[sp] < pas[sp + 1]) ? TRUE : FALSE;
 				break;
 
 			case 11: // LEQ
 				sp = sp - 1;
-				if(pas[sp] <= pas[sp + 1])
-					pas[sp] = TRUE;
-				else
-					pas[sp] = FALSE;
+				pas[sp] = (pas[sp] <= pas[sp + 1]) ? TRUE : FALSE;
 				break;
 
 			case 12: // GTR
 				sp = sp - 1;
-				if(pas[sp] > pas[sp + 1])
-					pas[sp] = TRUE;
-				else
-					pas[sp] = FALSE;
+				pas[sp] = (pas[sp] > pas[sp + 1]) ? TRUE : FALSE;
 				break;
 
 			case 13: // GEQ
 				sp = sp - 1;
-				if(pas[sp] >= pas[sp + 1])
-					pas[sp] = TRUE;
-				else
-					pas[sp] = FALSE;
+				pas[sp] = (pas[sp] >= pas[sp + 1]) ? TRUE : FALSE;
 				break;
 
 			default:
