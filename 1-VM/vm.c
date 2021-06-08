@@ -9,19 +9,21 @@
 #include <stdlib.h>
 
 #define MAX_pas_LENGTH 500
+#define TRUE 0
+#define FALSE 1
 
 typedef struct instruction
 {
 	// Operation Code
 	int op;
 
-	// Lexicographical
+	// Lexicographical level
 	int l;
 
 	// For LIT and INC: A number
 	// For JMP, JPC, and CAL: A program address
 	// For LOD and STO: A data address
-	// For OPR: The identity of OPR
+	// For 2: The identity of OPR
 	int m;
 
 } instruction;
@@ -35,7 +37,7 @@ instruction ir;
 
 /* Memory */
 // Process Address Space array
-int pas[MAX_pas_LENGTH]; // global, automatically initialized to zeros
+int pas[MAX_pas_LENGTH]; // global; automatically initialized to zeros
 
 int base(int L)
 {
@@ -99,39 +101,8 @@ int main(int argc, char **argv)
 	puts("                PC   BP   SP   stack");
 	printf("%-16s%-5d%-5d%-5d\n", "Initial values:", pc, bp, sp);
 
-	/* This is all to make it easy to refer to instructions by their name or number */
-	enum Opcodes
-	{
-		LIT = 1,
-		OPR,
-		LOD,
-		STO,
-		CAL,
-		INC,
-		JMP,
-		JPC,
-		SYS
-	};
-
-	enum Oprcodes
-	{
-		RTN,
-		NEG,
-		ADD,
-		SUB,
-		MUL,
-		DIV,
-		ODD,
-		MOD,
-		EQL,
-		NEQ,
-		LSS,
-		LEQ,
-		GTR,
-		GEQ
-	};
-
-	char *opName[] = {
+	// Helper arrays for printing names of actions
+	const char *instruction[] = {
 		[1] = "LIT",
 		"OPR",
 		"LOD",
@@ -143,7 +114,7 @@ int main(int argc, char **argv)
 		"SYS",
 	};
 
-	char *oprName[] = {
+	const char *operator[] = {
 		"RTN",
 		"NEG",
 		"ADD",
@@ -161,7 +132,6 @@ int main(int argc, char **argv)
 	};
 
 	// Helper variables to help in printing the stack
-	int curLevel = 0;
 	int isBorder[MAX_pas_LENGTH] = {0};
 	int initialBase = bp;
 
@@ -184,187 +154,179 @@ int main(int argc, char **argv)
 		// Use switch for the instructions
 		switch (ir.op)
 		{
-		case LIT:
+		case 1: // LIT
 			sp = sp + 1;
 			pas[sp] = ir.m;
 			break;
 
-		case OPR:
+		case 2: // OPR
 			switch (ir.m)
 			{
-			case RTN:
+			case 0: // RTN
 				sp = bp - 1;
 				isBorder[bp] = 0;
 				bp = pas[sp + 2];
 				pc = pas[sp + 3];
-				curLevel--;
 				break;
 
-			case NEG:
+			case 1: // NEG
 				pas[sp] = -1 * pas[sp];
 				break;
 
-			case ADD:
+			case 2: // ADD
 				sp = sp - 1;
 				pas[sp] = pas[sp] + pas[sp + 1];
 				break;
 
-			case SUB:
+			case 3: // SUB
 				sp = sp - 1;
 				pas[sp] = pas[sp] - pas[sp + 1];
 				break;
 
-			case MUL:
+			case 4: // MUL
 				sp = sp - 1;
 				pas[sp] = pas[sp] * pas[sp + 1];
 				break;
 
-			case DIV:
+			case 5: // DIV
 				sp = sp - 1;
 				pas[sp] = pas[sp] / pas[sp + 1];
 				break;
 
-			case ODD:
-				//pas[sp] = pas[sp] % 2;
+			case 6: // ODD
 				if(1 & pas[sp])
-					pas[sp] = 0;
+					pas[sp] = TRUE;
 				else
-					pas[sp] = 1;
+					pas[sp] = FALSE;
 				break;
 
-			case MOD:
+			case 7: // MOD
 				sp = sp - 1;
 				pas[sp] = pas[sp] % pas[sp + 1];
 				break;
 
-			case EQL:
+			case 8: // EQL
 				sp = sp - 1;
-				//pas[sp] = pas[sp] == pas[sp + 1];
 				if (pas[sp] == pas[sp + 1])
-					pas[sp] = 0;
+					pas[sp] = TRUE;
 				else
-					pas[sp] = 1;
+					pas[sp] = FALSE;
 				break;
 
-			case NEQ:
+			case 9: // NEQ
 				sp = sp - 1;
-				//pas[sp] = pas[sp] != pas[sp + 1];
 				if (pas[sp] != pas[sp + 1])
-					pas[sp] = 0;
+					pas[sp] = TRUE;
 				else
-					pas[sp] = 1;
+					pas[sp] = FALSE;
 				break;
 
-			case LSS:
+			case 10: // LSS
 				sp = sp - 1;
-				//pas[sp] = pas[sp] < pas[sp + 1];
 				if(pas[sp] < pas[sp + 1])
-					pas[sp] = 0;
+					pas[sp] = TRUE;
 				else
-					pas[sp] = 1;
+					pas[sp] = FALSE;
 				break;
 
-			case LEQ:
+			case 11: // LEQ
 				sp = sp - 1;
-				//pas[sp] = pas[sp] <= pas[sp + 1];
 				if(pas[sp] <= pas[sp + 1])
-					pas[sp] = 0;
+					pas[sp] = TRUE;
 				else
-					pas[sp] = 1;
+					pas[sp] = FALSE;
 				break;
 
-			case GTR:
+			case 12: // GTR
 				sp = sp - 1;
-				//pas[sp] = pas[sp] > pas[sp + 1];
 				if(pas[sp] > pas[sp + 1])
-					pas[sp] = 0;
+					pas[sp] = TRUE;
 				else
-					pas[sp] = 1;
+					pas[sp] = FALSE;
 				break;
 
-			case GEQ:
+			case 13: // GEQ
 				sp = sp - 1;
-				//pas[sp] = pas[sp] >= pas[sp + 1];
 				if(pas[sp] >= pas[sp + 1])
-					pas[sp] = 0;
+					pas[sp] = TRUE;
 				else
-					pas[sp] = 1;
+					pas[sp] = FALSE;
 				break;
 
 			default:
-				printf("Defaulted in OPR.\n");
+				printf("Defaulted in OPR: m=%d\n", ir.m);
 				break;
 
 			} // End of OPR switch
 			break;
 
-		case LOD:
+		case 3: // LOD
 			sp = sp + 1;
 			pas[sp] = pas[base(ir.l) + ir.m];
 			break;
 
-		case STO:
+		case 4: // STO
 			pas[base(ir.l) + ir.m] = pas[sp];
 			sp = sp - 1;
 			break;
 
-		case CAL:
+		case 5: // CAL
 			pas[sp + 1] = base(ir.l); // static link (SL)
 			pas[sp + 2] = bp;         // dynamic link (DL)
 			pas[sp + 3] = pc;         // return address (RA)
 			bp = sp + 1;
 			pc = ir.m;
-			curLevel++;
 			isBorder[sp + 1] = 1;
 			break;
 
-		case INC:
+		case 6: // INC
 			sp = sp + ir.m;
 			break;
 
-		case JMP:
+		case 7: // JMP
 			pc = ir.m;
 			break;
 
-		case JPC:
+		case 8: // JPC
 			if (pas[sp] == 1)
 				pc = ir.m;
 			sp = sp - 1;
 			break;
 
-		case SYS:
+		case 9: // SYS
 			switch (ir.m)
 			{
-			case 1:
+			case 1: // (write)
 				printf("Output result is: %d\n", pas[sp]);
 				sp = sp - 1;
 				break;
 
-			case 2:
+			case 2: // (read)
 				sp = sp + 1;
 				printf("Please Enter an Integer: ");
 				scanf("%d", &pas[sp]);
 				printf("\n");
 				break;
 
-			case 3:
+			case 3: // (halt)
 				halt = 0;
 				break;
 
 			default:
-				printf("Defaulted in SYS.\n");
+				printf("Defaulted in SYS: m=%d.\n", ir.m);
 				break;
 
 			} // End of SYS switch
 			break;
 
 		default:
-			printf("Defaulted in instructions.\n");
+			printf("Defaulted in instructions: op=%d\n", ir.op);
 			break;
 
 		} // End of instructions switch
 
-		char *act = (ir.op == OPR) ? oprName[ir.m] : opName[ir.op];
+		// Get the name of the action
+		const char *act = (ir.op == 2) ? operator[ir.m] : instruction[ir.op];
 
 		/* Print to the output table */
 		printf("%2d %s %-4d%-5d%-5d%-5d%-5d",
@@ -382,22 +344,6 @@ int main(int argc, char **argv)
 }
 
 /*
-Rubric:
--100 – Does not compile
-10   – Compiles
-20   – Produces lines of meaningful execution before segfaulting or looping infinitely
-5    – Follows IO specifications (takes command line argument for input file name and prints output to console)
-5    – README.txt containing author names
-5    – Fetch cycle is implemented correctly
-15   – Instructions are not implemented with individual functions
-5    – Well commented source code
-5    – Arithmetic instructions are implemented correctly
-5    – Read and write instructions are implemented correctly
-10   – Load and store instructions are implemented correctly
-10   – Call and return instructions are implemented correctly
-5    – Follows formatting guidelines correctly, source code is named vm.c
-*/
-
-/*
-   - c) Student names should be written in the header comment of each source code file, in the readme, and in the comments of the submission
-   */
+ * c) Student names should be written in the header comment of each source
+ * code file, in the readme, and in the comments of the submission
+ */
