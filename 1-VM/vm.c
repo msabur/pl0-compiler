@@ -142,9 +142,10 @@ int main(int argc, char **argv)
 	while (halt != 0)
 	{
 		/* Fetch Cycle */
-		ir.op = pas[pc++];
-		ir.l = pas[pc++];
-		ir.m = pas[pc++];
+		ir.op = pas[pc];
+		ir.l = pas[pc + 1];
+		ir.m = pas[pc + 2];
+		pc = pc + 3;
 
 
 		/* Execute Cycle */
