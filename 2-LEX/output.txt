@@ -1,0 +1,6 @@
+Lexeme Table:
+lexeme		token type
+        124	33
+
+Token List:
+33 124 

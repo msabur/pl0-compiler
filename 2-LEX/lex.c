@@ -29,6 +29,69 @@ lexeme *lexanalyzer(char *input)
 	list = malloc(500 * sizeof(lexeme));
 	lex_index = 0;
 
+	// on error, call printerror and return NULL
+	char tmp[500]; *tmp = 0; // current token
+	int tmp_index = 0; // next index to read 'tmp[]' from
+	int read_index = 0; // next index to read 'input[]' from
+	int error_number = -1;
+	while(1)
+	{
+		if(read_index >= 500) // when at end of input
+			goto end;
+
+		// skip any whitespace
+		while(iscntrl(input[read_index]))
+			read_index++;
+		
+		// tokenizing a word (identifier or reserved word)
+		if(isalpha(input[read_index]))
+		{
+			// TODO do stuff
+			while(isalnum(input[read_index]))
+			{
+				// TODO do stuff
+				read_index++;
+			}
+			// TODO do stuff
+		}
+
+		// tokenizing a number
+		if(isdigit(input[read_index]))
+		{
+			while(isdigit(input[read_index]))
+			{
+				tmp[tmp_index++] = input[read_index++];
+				if(read_index >= 500)
+					// we reached the end of the file
+					goto end;
+				else if(tmp_index > MAX_NUMBER_LENGTH)
+				{
+					error_number = 3;
+					goto error;
+				} 
+			}
+			tmp[tmp_index++] = '\0'; // to end the string
+			if(isalpha(input[read_index]))
+			{
+				// a number followed by a letter
+				error_number = 2; // invalid identifier
+				goto error;
+			}
+			list[lex_index].type = numbersym;
+			list[lex_index].value = atoi(tmp);
+			lex_index++;
+			tmp_index = 0; // resetting this variable
+		}
+
+		else
+			read_index++;
+	}
+end:
+	printtokens();
+	return list;
+error:
+	printerror(error_number);
+	return NULL;
 }
 
 void printtokens()
