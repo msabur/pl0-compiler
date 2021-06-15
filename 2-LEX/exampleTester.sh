@@ -3,26 +3,26 @@
 make
 compiled=$?
 if [[ $compiled != 0 ]]; then
-	echo "Does not compile"
+	echo "does not compile"
 	exit 1
 fi
 
 echo "Compiles"
 
 echo -n "Testing Tokens : "
-./lex lex_example1.txt > output.txt
+./a.out lex_example1.txt > output.txt
 executed=$?
 if [[ $executed !=  0 ]]; then
-	echo "Crashed"
+	echo ":'("
 	exit 1
 else
 	diff -w -B output.txt lexout1.txt &> /dev/null
 	correct=$?
 	if [[ $correct != 0 ]]; then
-		echo "Fail"
+		echo ":'("
 		exit 1
 	else
-		echo "OK"
+		echo "───==≡≡ΣΣ((( つºل͜º)つ"
 	fi
 fi
 
@@ -30,16 +30,16 @@ fi
 echo -n "Testing Errors : "
 
 echo -n "lex_example2.txt : "
-./lex lex_example2.txt > output.txt
+./a.out lex_example2.txt > output.txt
 executed=$?
 if [[ $executed !=  0 ]]; then
-	echo "Crashed"
+	echo ":'("
 else
 	diff -w -B output.txt lexout2.txt &> /dev/null
 	correct=$?
 	if [[ $correct != 0 ]]; then
-		echo "Fail"
+		echo ":'("
 	else
-		echo "OK"
+		echo "───==≡≡ΣΣ((( つºل͜º)つ"
 	fi
 fi

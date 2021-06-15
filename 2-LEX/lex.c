@@ -4,6 +4,8 @@
 	variables as desired, but do not alter printerror or printtokens.
 	Include your name (and your partner's name) in this comment in order to 
 	earn the points for compiling
+	
+Names: Grant Allan, Maahee Abdus Sabur
 */
 
 #include <stdlib.h>
@@ -11,6 +13,9 @@
 #include <ctype.h>
 #include <string.h>
 #include "compiler.h"
+
+#define MAX_IDENT_LENGTH 11
+#define MAX_NUMBER_LENGTH 5
 
 
 lexeme *list;
@@ -23,8 +28,7 @@ lexeme *lexanalyzer(char *input)
 {
 	list = malloc(500 * sizeof(lexeme));
 	lex_index = 0;
-	
-	return list;
+
 }
 
 void printtokens()
