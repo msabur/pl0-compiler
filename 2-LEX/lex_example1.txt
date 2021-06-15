@@ -1,0 +1,1 @@
+const==var<>procedure<begin>end<=if>=then.else;while(do)call:=read,write+124-jalapeno*/*comment*//
