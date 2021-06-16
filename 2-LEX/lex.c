@@ -21,6 +21,7 @@ Names: Grant Allan, Maahee Abdus Sabur
 lexeme *list;
 int lex_index;
 
+int isSymbol(int c);
 void printerror(int type);
 void printtokens();
 
@@ -75,6 +76,7 @@ lexeme *lexanalyzer(char *input)
 				} 
 			}
 			tmp[tmp_index++] = '\0'; // to end the string
+			tmp_index = 0; // resetting this variable
 			if(isalpha(input[read_index]))
 			{
 				// a number followed by a letter
@@ -84,7 +86,63 @@ lexeme *lexanalyzer(char *input)
 			list[lex_index].type = numbersym;
 			list[lex_index].value = atoi(tmp);
 			lex_index++;
+		}
+
+		// tokenizing a symbol
+		if(isSymbol(input[read_index]))
+		{
+			while(isSymbol(input[read_index]))
+			{
+				tmp[tmp_index++] = input[read_index++];
+				if(read_index >= 500)
+					break;
+			}
+			tmp[tmp_index++] = '\0';
 			tmp_index = 0; // resetting this variable
+			int symbol_type = -1; // sentinel value
+			if(strcmp(tmp, "==") == 0)
+				symbol_type = eqlsym;
+			else if(strcmp(tmp, "<>") == 0)
+				symbol_type = neqsym;
+			else if(strcmp(tmp, "<") == 0)
+				symbol_type = lessym;
+			else if(strcmp(tmp, "<=") == 0)
+				symbol_type = leqsym;
+			else if(strcmp(tmp, ">") == 0)
+				symbol_type = gtrsym;
+			else if(strcmp(tmp, ">=") == 0)
+				symbol_type = geqsym;
+			else if(strcmp(tmp, "%") == 0)
+				symbol_type = modsym;
+			else if(strcmp(tmp, "*") == 0)
+				symbol_type = multsym;
+			else if(strcmp(tmp, "/") == 0)
+				symbol_type = slashsym;
+			else if(strcmp(tmp, "+") == 0)
+				symbol_type = plussym;
+			else if(strcmp(tmp, "-") == 0)
+				symbol_type = minussym;
+			else if(strcmp(tmp, "(") == 0)
+				symbol_type = lparentsym;
+			else if(strcmp(tmp, ")") == 0)
+				symbol_type = rparentsym;
+			else if(strcmp(tmp, ",") == 0)
+				symbol_type = commasym;
+			else if(strcmp(tmp, ".") == 0)
+				symbol_type = periodsym;
+			else if(strcmp(tmp, ";") == 0)
+				symbol_type = semicolonsym;
+			else if(strcmp(tmp, ":=") == 0)
+				symbol_type = becomessym;
+
+			if(symbol_type == -1) {
+				printf("Invalid symbol %s\n", tmp); // TODO delete this later
+				error_number = 1;
+				goto error;
+			}
+
+			list[lex_index].type = symbol_type;
+			lex_index++;
 		}
 
 		else
@@ -96,6 +154,14 @@ end:
 error:
 	printerror(error_number);
 	return NULL;
+}
+
+int isSymbol(int c) {
+	static char symbolCharacters[] = "=<>%*/+-(),.;:";
+	static int symbolCharacters_length = sizeof(symbolCharacters) - 1;
+	for(int i = 0; i < symbolCharacters_length; i++)
+		if(c == symbolCharacters[i]) return 1;
+	return 0;
 }
 
 void printtokens()
