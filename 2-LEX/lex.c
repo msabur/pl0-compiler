@@ -44,6 +44,10 @@ lexeme *lexanalyzer(char *input)
 			read_index++;
 		
 		// tokenizing a word (identifier or reserved word)
+		/*
+		 * The number tokenization part depends on this to ignore
+		 * words that have numbers in them.
+		 */
 		if(isalpha(input[read_index]))
 		{
 			// TODO do stuff
