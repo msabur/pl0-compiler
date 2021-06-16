@@ -226,7 +226,7 @@ int main(int argc, char **argv)
 
 			case ODD:
 				//pas[sp] = pas[sp] % 2;
-				if(1 & pas[sp])
+				if(pas[sp] % 2 == 1)
 					pas[sp] = 0;
 				else
 					pas[sp] = 1;
