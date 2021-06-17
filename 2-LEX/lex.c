@@ -4,7 +4,6 @@
    variables as desired, but do not alter printerror or printtokens.
    Include your name (and your partner's name) in this comment in order to 
    earn the points for compiling
-
 Names: Grant Allan, Maahee Abdus Sabur
 */
 
@@ -16,7 +15,6 @@ Names: Grant Allan, Maahee Abdus Sabur
 
 #define MAX_IDENT_LENGTH 11
 #define MAX_NUMBER_LENGTH 5
-
 
 lexeme *list;
 int lex_index;
@@ -35,37 +33,41 @@ lexeme *lexanalyzer(char *input)
 	int error_number = -1;
 
 	/* Replacing comments with whitespace so that they are ignored */
-	int IN_COMMENT = 0;
-	for(int i = 0; i + 1 < input_len; i++) {
-		if(IN_COMMENT) {
-			input[i] = ' '; // replace inside of comment with spaces
-		}
-		if(input[i] == '/' &&
-				input[i + 1] == '*')
+	// Run through the entire input
+	for (int i = 0; i + 1 < input_len; i++)
+	{
+		// Enter the comment
+		if (input[i] == "/" && input[i + 1] == "*")
 		{
-			input[i] = input[i + 1] = ' '; // replace /* with spaces
-			IN_COMMENT = 1;
-			i++;
+
+			// Until the comment is closed
+			while (input[i] != "*" && input[i + 1] != "/")
+			{
+				input[i] = " ";
+				i++;
+
+				// Throws an error if the comment never ends
+				if (i > input_len)
+				{
+					error_number = 5; // neverending comment
+					goto error;
+				}
+			}
+
+			// Set the "*/" to whitespace
+			input[i] == " ";
+			input[i++] == " ";
 		}
-		if(input[i] == '*' &&
-				input[i + 1] == '/') {
-			input[i] = input[i + 1] = ' '; // replace */ with spaces
-			IN_COMMENT = 0;
-			i++;
-		}
-	}
-	if(IN_COMMENT) {
-		error_number = 5; // neverending comment
-		goto error;
 	}
 
-	// on error, call printerror and return NULL
-	char tmp[500]; *tmp = 0; // current token
-	int tmp_index = 0; // next index to read 'tmp[]' from
+	// On error, call printerror and return NULL
+	char tmp[500];
+	*tmp = 0;			// current token
+	int tmp_index = 0;	// next index to read 'tmp[]' from
 	int read_index = 0; // next index to read 'input[]' from
 
 	// Processes the entire input
-	while(read_index < input_len)
+	while (read_index < input_len)
 	{
 		// Skip invisible characters
 		while (iscntrl(input[read_index]) || isspace(input[read_index]))
@@ -77,14 +79,10 @@ lexeme *lexanalyzer(char *input)
 		}
 
 		// Tokenizing a word (identifier or reserved word)
-		/*
-		 * NOTE: Until we're told that numbers are supposed to be
-		 * part of the words, I'm going to assume they aren't.
-		 */
-		if(isalpha(input[read_index]))
+		if (isalpha(input[read_index]))
 		{
-			// Read in the string of letters into temp
-			while (isalpha(input[read_index]))
+			// Read in the string of letters and numbers into tmp
+			while (isalnum(input[read_index]))
 			{
 				// Fill tmp with the input characters
 				tmp[tmp_index++] = input[read_index++];
@@ -104,36 +102,66 @@ lexeme *lexanalyzer(char *input)
 			}
 
 			tmp[tmp_index++] = '\0';
-			tmp_index = 0;		  // resetting this variable
-			int letter = -1; // sentinel value
+			tmp_index = 0;	 // resetting this variable
+			int word_type = -1; // sentinel value
 
-
-			// Check for reserved words and random words
-			// TODO
+			// Check for reserved words and identifiers
+			// Reserved Words
+			if (strcmp(tmp, "const") == 0)
+				word_type = constsym; // 29
+			else if (strcmp(tmp, "var") == 0)
+				word_type = varsym; // 30
+			else if (strcmp(tmp, "preocedure") == 0)
+				word_type = procsym; // 31
+			else if (strcmp(tmp, "call") == 0)
+				word_type = callsym; // 26
+			else if (strcmp(tmp, "if") == 0)
+				word_type = ifsym; // 21
+			else if (strcmp(tmp, "then") == 0)
+				word_type = thensym; // 22
+			else if (strcmp(tmp, "else") == 0)
+				word_type = elsesym; // 23
+			else if (strcmp(tmp, "while") == 0)
+				word_type = whilesym; // 24
+			else if (strcmp(tmp, "do") == 0)
+				word_type = dosym; // 25
+			else if (strcmp(tmp, "begin") == 0)
+				word_type = beginsym; // 19
+			else if (strcmp(tmp, "end") == 0)
+				word_type = endsym; // 20
+			else if (strcmp(tmp, "read") == 0)
+				word_type = readsym; // 28
+			else if (strcmp(tmp, "write") == 0)
+				word_type = writesym; // 27
+			else if (strcmp(tmp, "odd") == 0)
+				word_type = oddsym; // 1
+			// Identifiers
+			else
+				word_type = identsym; // 32
 		}
 
 		// Tokenizing a number
-		else if(isdigit(input[read_index]))
+		else if (isdigit(input[read_index]))
 		{
 			// As long as the input continues to be numbers...
-			while(isdigit(input[read_index]))
+			while (isdigit(input[read_index]))
 			{
 				// Fill tmp with the input characters
 				tmp[tmp_index++] = input[read_index++];
 
-				if(read_index >= input_len)
+				if (read_index >= input_len)
 					// we reached the end of the file
 					goto end;
-				else if(tmp_index > MAX_NUMBER_LENGTH)
+				else if (tmp_index > MAX_NUMBER_LENGTH)
 				{
 					error_number = 3; // number too long
 					goto error;
-				} 
+				}
 			}
 			tmp[tmp_index++] = '\0'; // to end the string
-			tmp_index = 0; // resetting this variable
+			tmp_index = 0;			 // resetting this variable
 
-			if(isalpha(input[read_index]))
+			if (isalpha(input[read_index]))
 			{
 				// A number followed by a letter
 				error_number = 2; // invalid identifier
@@ -145,12 +173,12 @@ lexeme *lexanalyzer(char *input)
 		}
 
 		// Tokenizing a symbol
-		else if(isSymbolChar(input[read_index]))
+		else if (isSymbolChar(input[read_index]))
 		{
-			while(isSymbolChar(input[read_index]))
+			while (isSymbolChar(input[read_index]))
 			{
 				tmp[tmp_index++] = input[read_index++];
-				if(read_index >= input_len)
+				if (read_index >= input_len)
 					break;
 			}
 			tmp[tmp_index++] = '\0';
@@ -162,7 +190,7 @@ lexeme *lexanalyzer(char *input)
 			 * distinguish between symbols clumped together, such
 			 * as "(((x-1))*7)". To test it: <symbolsWithoutWhitespace.txt>.
 			 * The code is ugly but this is the essence of it:
-			 * > foreach char in tmp:
+			 * > for each char in tmp:
 			 * >     if it is the start of a duo:
 			 * >         if the next character completes the duo:
 			 * >             record the duo
@@ -170,84 +198,47 @@ lexeme *lexanalyzer(char *input)
 			 * >             continue
 			 * >     record the char as a symbol, or throw error
 			 * 
-			 * TODO remove commented code eventually
 			 */
-			for(int i = 0; i < tmp_index - 1; i++)
+			// Run through the string
+			for (int i = 0; i < tmp_index - 1; i++)
 			{
-				switch(tmp[i])
+				switch (tmp[i])
 				{
 				case '=':
 				case '<':
 				case '>':
 				case ':':
-					curSymbol = (char []){tmp[i], 
-						tmp[i + 1], '\0'};
-					if(i + 1 < tmp_index - 1 &&
-							isSymbol(curSymbol)) {
+					curSymbol = (char[])
+					{
+						tmp[i],
+						tmp[i + 1],
+						'\0'
+					};
+					if (i <= tmp_index - 1 && isSymbol(curSymbol))
+					{
 						symbol_type = getSymbolType(curSymbol);
-						if(symbol_type != -1) {
+						
+						if (symbol_type != -1)
+						{
 							list[lex_index++].type = symbol_type;
 							i++;
 							continue;
 						}
 					}
 				default:
-					curSymbol = (char []){tmp[i], '\0'};
-					if((symbol_type = getSymbolType(curSymbol)) != -1) {
+					curSymbol = (char[]){tmp[i], '\0'};
+					if ((symbol_type = getSymbolType(curSymbol)) != -1)
+					{
 						list[lex_index++].type = symbol_type;
-					} else {
+					}
+					else
+					{
 						error_number = 1;
 						goto error;
 					}
 				}
 			}
 			tmp_index = 0; // resetting this variable
-			/*
-			   tmp_index = 0; // resetting this variable
-			   if(strcmp(tmp, "==") == 0)
-			   symbol_type = eqlsym;
-			   else if(strcmp(tmp, "<>") == 0)
-			   symbol_type = neqsym;
-			   else if(strcmp(tmp, "<") == 0)
-			   symbol_type = lessym;
-			   else if(strcmp(tmp, "<=") == 0)
-			   symbol_type = leqsym;
-			   else if(strcmp(tmp, ">") == 0)
-			   symbol_type = gtrsym;
-			   else if(strcmp(tmp, ">=") == 0)
-			   symbol_type = geqsym;
-			   else if(strcmp(tmp, "%") == 0)
-			   symbol_type = modsym;
-			   else if(strcmp(tmp, "*") == 0)
-			   symbol_type = multsym;
-			   else if(strcmp(tmp, "/") == 0)
-			   symbol_type = slashsym;
-			   else if(strcmp(tmp, "+") == 0)
-			   symbol_type = plussym;
-			   else if(strcmp(tmp, "-") == 0)
-			   symbol_type = minussym;
-			   else if(strcmp(tmp, "(") == 0)
-			   symbol_type = lparentsym;
-			   else if(strcmp(tmp, ")") == 0)
-			   symbol_type = rparentsym;
-			   else if(strcmp(tmp, ",") == 0)
-			   symbol_type = commasym;
-			   else if(strcmp(tmp, ".") == 0)
-			   symbol_type = periodsym;
-			   else if(strcmp(tmp, ";") == 0)
-			   symbol_type = semicolonsym;
-			   else if(strcmp(tmp, ":=") == 0)
-			   symbol_type = becomessym;
-
-			   if(symbol_type == -1) {
-			   printf("Invalid symbol %s\n", tmp); // TODO delete this later
-			   error_number = 1;
-			   goto error;
-			   }
-
-			   list[lex_index].type = symbol_type;
-			   lex_index++;
-			   */
 		}
 
 		else
@@ -261,61 +252,65 @@ error:
 	return NULL;
 }
 
-int isSymbol(char *s) {
+int isSymbol(char *s)
+{
 	static char *symbols[] = {"==", "<>", "<", "<-", ">", ">=", "%", "*",
-		"/", "+", "-", "(", ")", ",", ".", ";", ":="};
+							  "/", "+", "-", "(", ")", ",", ".", ";", ":="};
 	static int symbols_length = sizeof(symbols) - 1;
 	for (int i = 0; i < symbols_length; i++)
-		if(strcmp(s, symbols[i])) return 1;
+		if (strcmp(s, symbols[i]))
+			return 1;
 	return 0;
 }
 
-int isSymbolChar(int c) {
+int isSymbolChar(int c)
+{
 	static char symbolCharacters[] = "=<>%*/+-(),.;:";
 	static int symbolCharacters_length = sizeof(symbolCharacters) - 1;
-	for(int i = 0; i < symbolCharacters_length; i++)
-		if(c == symbolCharacters[i]) return 1;
+	for (int i = 0; i < symbolCharacters_length; i++)
+		if (c == symbolCharacters[i])
+			return 1;
 	return 0;
 }
 
-int getSymbolType(char *s) {
-	if(strcmp(s, "==") == 0)
+int getSymbolType(char *s)
+{
+	if (strcmp(s, "==") == 0)
 		return eqlsym;
-	else if(strcmp(s, "<>") == 0)
+	else if (strcmp(s, "<>") == 0)
 		return neqsym;
-	else if(strcmp(s, "<") == 0)
+	else if (strcmp(s, "<") == 0)
 		return lessym;
-	else if(strcmp(s, "<=") == 0)
+	else if (strcmp(s, "<=") == 0)
 		return leqsym;
-	else if(strcmp(s, ">") == 0)
+	else if (strcmp(s, ">") == 0)
 		return gtrsym;
-	else if(strcmp(s, ">=") == 0)
+	else if (strcmp(s, ">=") == 0)
 		return geqsym;
-	else if(strcmp(s, "%") == 0)
+	else if (strcmp(s, "%") == 0)
 		return modsym;
-	else if(strcmp(s, "*") == 0)
+	else if (strcmp(s, "*") == 0)
 		return multsym;
-	else if(strcmp(s, "/") == 0)
+	else if (strcmp(s, "/") == 0)
 		return slashsym;
-	else if(strcmp(s, "+") == 0)
+	else if (strcmp(s, "+") == 0)
 		return plussym;
-	else if(strcmp(s, "-") == 0)
+	else if (strcmp(s, "-") == 0)
 		return minussym;
-	else if(strcmp(s, "(") == 0)
+	else if (strcmp(s, "(") == 0)
 		return lparentsym;
-	else if(strcmp(s, ")") == 0)
+	else if (strcmp(s, ")") == 0)
 		return rparentsym;
-	else if(strcmp(s, ",") == 0)
+	else if (strcmp(s, ",") == 0)
 		return commasym;
-	else if(strcmp(s, ".") == 0)
+	else if (strcmp(s, ".") == 0)
 		return periodsym;
-	else if(strcmp(s, ";") == 0)
+	else if (strcmp(s, ";") == 0)
 		return semicolonsym;
-	else if(strcmp(s, ":=") == 0)
+	else if (strcmp(s, ":=") == 0)
 		return becomessym;
 	else
 		return -1;
-
 }
 
 void printtokens()
