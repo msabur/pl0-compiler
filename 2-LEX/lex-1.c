@@ -83,6 +83,7 @@ lexeme *lexanalyzer(char *input)
 			tmp_index = 0;		  // resetting this variable
 			int letter = -1; // sentinel value
 
+
 			// Check for reserved words and random words
 			// TODO
 		}

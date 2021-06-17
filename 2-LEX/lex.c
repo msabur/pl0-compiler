@@ -21,7 +21,9 @@ Names: Grant Allan, Maahee Abdus Sabur
 lexeme *list;
 int lex_index;
 
-int isSymbol(int c);
+int isSymbolChar(int c);
+int isSymbol(char *s);
+int getSymbolType(char *s);
 void printerror(int type);
 void printtokens();
 
@@ -66,7 +68,6 @@ lexeme *lexanalyzer(char *input)
 	{
 		if(read_index >= 500) // when at end of input
 			goto end;
-		putchar(input[read_index]);
 
 		// skip any whitespace
 		while(iscntrl(input[read_index]))
@@ -119,17 +120,63 @@ lexeme *lexanalyzer(char *input)
 				
 
 		// tokenizing a symbol
-		else if(isSymbol(input[read_index]))
+		else if(isSymbolChar(input[read_index]))
 		{
-			while(isSymbol(input[read_index]))
+			while(isSymbolChar(input[read_index]))
 			{
 				tmp[tmp_index++] = input[read_index++];
 				if(read_index >= 500)
 					break;
 			}
 			tmp[tmp_index++] = '\0';
-			tmp_index = 0; // resetting this variable
+			char *curSymbol;
 			int symbol_type = -1; // sentinel value
+
+			/*
+			 * Processing each symbol individually so we can
+			 * distinguish between symbols clumped together, such
+			 * as "(((x-1))*7)"
+			 * The code is ugly but this is the essence of it:
+			 * > foreach char in tmp:
+			 * >     if it is the start of a duo:
+			 * >         if the next character completes the duo:
+			 * >             record the duo
+			 * >             skip the next character
+			 * >             continue
+			 * >     record the char as a symbol, or throw error
+			 */
+			for(int i = 0; i < tmp_index - 1; i++)
+			{
+				switch(tmp[i])
+				{
+					case '=':
+					case '<':
+					case '>':
+					case ':':
+						curSymbol = (char []){tmp[i], 
+							tmp[i + 1], '\0'};
+						if(i + 1 < tmp_index - 1 &&
+								isSymbol(curSymbol)) {
+							symbol_type = getSymbolType(curSymbol);
+							if(symbol_type != -1) {
+								list[lex_index++].type = symbol_type;
+								i++;
+								continue;
+							}
+						}
+					default:
+						char *zi = (char []){tmp[i], '\0'};
+						if((symbol_type = getSymbolType(zi)) != -1) {
+							list[lex_index++].type = symbol_type;
+						} else {
+							error_number = 1;
+							goto error;
+						}
+				}
+			}
+			tmp_index = 0; // resetting this variable
+			/*
+			tmp_index = 0; // resetting this variable
 			if(strcmp(tmp, "==") == 0)
 				symbol_type = eqlsym;
 			else if(strcmp(tmp, "<>") == 0)
@@ -173,6 +220,7 @@ lexeme *lexanalyzer(char *input)
 
 			list[lex_index].type = symbol_type;
 			lex_index++;
+			*/
 		}
 
 		else
@@ -186,12 +234,62 @@ error:
 	return NULL;
 }
 
-int isSymbol(int c) {
+int isSymbol(char *s) {
+	static char *symbols[] = {"==", "<>", "<", "<-", ">", ">=", "%", "*",
+		"/", "+", "-", "(", ")", ",", ".", ";", ":="};
+	static int symbols_length = sizeof(symbols) - 1;
+	for (int i = 0; i < symbols_length; i++)
+		if(strcmp(s, symbols[i])) return 1;
+	return 0;
+}
+
+int isSymbolChar(int c) {
 	static char symbolCharacters[] = "=<>%*/+-(),.;:";
 	static int symbolCharacters_length = sizeof(symbolCharacters) - 1;
 	for(int i = 0; i < symbolCharacters_length; i++)
 		if(c == symbolCharacters[i]) return 1;
 	return 0;
+}
+
+int getSymbolType(char *s) {
+	printf("in getSymbolType, %s\n", s);
+	if(strcmp(s, "==") == 0)
+		return eqlsym;
+	else if(strcmp(s, "<>") == 0)
+		return neqsym;
+	else if(strcmp(s, "<") == 0)
+		return lessym;
+	else if(strcmp(s, "<=") == 0)
+		return leqsym;
+	else if(strcmp(s, ">") == 0)
+		return gtrsym;
+	else if(strcmp(s, ">=") == 0)
+		return geqsym;
+	else if(strcmp(s, "%") == 0)
+		return modsym;
+	else if(strcmp(s, "*") == 0)
+		return multsym;
+	else if(strcmp(s, "/") == 0)
+		return slashsym;
+	else if(strcmp(s, "+") == 0)
+		return plussym;
+	else if(strcmp(s, "-") == 0)
+		return minussym;
+	else if(strcmp(s, "(") == 0)
+		return lparentsym;
+	else if(strcmp(s, ")") == 0)
+		return rparentsym;
+	else if(strcmp(s, ",") == 0)
+		return commasym;
+	else if(strcmp(s, ".") == 0)
+		return periodsym;
+	else if(strcmp(s, ";") == 0)
+		return semicolonsym;
+	else if(strcmp(s, ":=") == 0)
+		return becomessym;
+	else
+		return -1;
+
 }
 
 void printtokens()
