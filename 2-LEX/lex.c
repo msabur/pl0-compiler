@@ -32,7 +32,6 @@ lexeme *lexanalyzer(char *input)
 	int input_len = strlen(input);
 	int error_number = -1;
 
-	printf("Before removing comments: %s\n", input);
 	/* Replacing comments with whitespace so that they are ignored */
 	// Run through the entire input
 	for (int i = 0; i + 1 < input_len; i++)
@@ -60,7 +59,6 @@ lexeme *lexanalyzer(char *input)
 			input[i++] == ' ';
 		}
 	}
-	printf("After removing comments : %s\n", input);
 
 	// On error, call printerror and return NULL
 	char tmp[500];
