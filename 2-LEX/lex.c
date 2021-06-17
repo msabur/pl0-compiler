@@ -29,16 +29,44 @@ lexeme *lexanalyzer(char *input)
 {
 	list = malloc(500 * sizeof(lexeme));
 	lex_index = 0;
+	int input_len = strlen(input);
+	int error_number = -1;
+
+	/* Replacing comments with whitespace so that they are ignored */
+	int IN_COMMENT = 0;
+	for(int i = 0; i + 1 < input_len; i++) {
+		if(IN_COMMENT) {
+			input[i] = ' ';
+		}
+		if(input[i] == '/' &&
+				input[i + 1] == '*')
+		{
+			input[i] = input[i + 1] = ' ';
+			IN_COMMENT = 1;
+			i++;
+		}
+		if(input[i] == '*' &&
+				input[i + 1] == '/') {
+			input[i] = input[i + 1] = ' ';
+			IN_COMMENT = 0;
+			i++;
+		}
+	}
+	if(IN_COMMENT) {
+		error_number = 5;
+		goto error;
+	}
 
 	// on error, call printerror and return NULL
 	char tmp[500]; *tmp = 0; // current token
 	int tmp_index = 0; // next index to read 'tmp[]' from
 	int read_index = 0; // next index to read 'input[]' from
-	int error_number = -1;
-	while(1)
+
+	for(read_index = 0; read_index < input_len;)
 	{
 		if(read_index >= 500) // when at end of input
 			goto end;
+		putchar(input[read_index]);
 
 		// skip any whitespace
 		while(iscntrl(input[read_index]))
@@ -61,7 +89,7 @@ lexeme *lexanalyzer(char *input)
 		}
 
 		// tokenizing a number
-		if(isdigit(input[read_index]))
+		else if(isdigit(input[read_index]))
 		{
 			while(isdigit(input[read_index]))
 			{
@@ -88,8 +116,10 @@ lexeme *lexanalyzer(char *input)
 			lex_index++;
 		}
 
+				
+
 		// tokenizing a symbol
-		if(isSymbol(input[read_index]))
+		else if(isSymbol(input[read_index]))
 		{
 			while(isSymbol(input[read_index]))
 			{

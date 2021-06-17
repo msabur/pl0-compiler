@@ -74,9 +74,7 @@ lexeme *lexanalyzer(char *input)
 				// allowed length.
 				if (tmp_index > MAX_IDENT_LENGTH)
 				{
-					// Not sure what error number it's supposed to be,
-					// so I'll call it 7
-					error_number = 7;
+					error_number = 4; // invalid identifier
 					goto error;
 				}
 			}
@@ -225,9 +223,7 @@ lexeme *lexanalyzer(char *input)
 							// Throw an error if it reaches the end of the
 							// input without the comment ending
 							if (read_index >= 500)
-								// Not sure what error number this should be,
-								// so I'll call it 8
-								error_number = 8;
+								error_number = 5;
 								goto error;
 						}
 
