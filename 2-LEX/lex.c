@@ -32,18 +32,19 @@ lexeme *lexanalyzer(char *input)
 	int input_len = strlen(input);
 	int error_number = -1;
 
+	printf("Before removing comments: %s\n", input);
 	/* Replacing comments with whitespace so that they are ignored */
 	// Run through the entire input
 	for (int i = 0; i + 1 < input_len; i++)
 	{
 		// Enter the comment
-		if (input[i] == "/" && input[i + 1] == "*")
+		if (input[i] == '/' && input[i + 1] == '*')
 		{
 			// Until the comment is closed
-			while (input[i] != "*" && input[i + 1] != "/")
+			while (input[i] != '*' && input[i + 1] != '/')
 			{
 				// Replace the comment with whitespace
-				input[i] = " ";
+				input[i] = ' ';
 				i++;
 
 				// Throws an error if the comment never ends
@@ -55,10 +56,11 @@ lexeme *lexanalyzer(char *input)
 			}
 
 			// Set the "*/" to whitespace
-			input[i] == " ";
-			input[i++] == " ";
+			input[i] == ' ';
+			input[i++] == ' ';
 		}
 	}
+	printf("After removing comments : %s\n", input);
 
 	// On error, call printerror and return NULL
 	char tmp[500];
@@ -138,6 +140,9 @@ lexeme *lexanalyzer(char *input)
 			// Identifiers
 			else
 				word_type = identsym; // 32
+			list[lex_index].type = word_type;
+			strcmp(list[lex_index].name, tmp);
+			lex_index++;
 		}
 
 		// Tokenizing a number
