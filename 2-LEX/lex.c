@@ -42,6 +42,7 @@ lexeme *lexanalyzer(char *input)
 			// Until the comment is closed
 			while (input[i] != "*" && input[i + 1] != "/")
 			{
+				// Replace the comment with whitespace
 				input[i] = " ";
 				i++;
 
