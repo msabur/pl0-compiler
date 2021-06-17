@@ -39,7 +39,6 @@ lexeme *lexanalyzer(char *input)
 		// Enter the comment
 		if (input[i] == "/" && input[i + 1] == "*")
 		{
-
 			// Until the comment is closed
 			while (input[i] != "*" && input[i + 1] != "/")
 			{
