@@ -13,6 +13,8 @@ Names: Grant Allan, Maahee Abdus Sabur
 #include <string.h>
 #include "compiler.h"
 
+#define THROW_ERROR(x) do{error_number = x; goto error;}while(0)
+
 #define MAX_IDENT_LENGTH 11
 #define MAX_NUMBER_LENGTH 5
 
@@ -32,7 +34,6 @@ lexeme *lexanalyzer(char *input)
 	int input_len = strlen(input);
 	int error_number = -1;
 
-	//printf("Before removing comments: %s\n", input);
 	/* Replacing comments with whitespace so that they are ignored */
 	int IN_COMMENT = 0;
 	int _lastCommentStart = 0;
@@ -57,11 +58,7 @@ lexeme *lexanalyzer(char *input)
 	}
 	if (IN_COMMENT)
 	{
-		/*
-		error_number = 5; // neverending comment
-		goto error;
-		*/
-		// put some random character to mark the start of a neverending comment
+		// an uncommon character to mark the start of a neverending comment
 		input[_lastCommentStart] = '\v';
 	}
 
@@ -78,8 +75,7 @@ lexeme *lexanalyzer(char *input)
 		{
 			if(input[read_index] == '\v') {
 				// a neverending comment had started here
-				error_number = 5; // neverending comment
-				goto error;
+				THROW_ERROR(5); // neverending comment
 			}
 			read_index++;
 
@@ -96,23 +92,17 @@ lexeme *lexanalyzer(char *input)
 				// Fill tmp with the input characters
 				tmp[tmp_index++] = input[read_index++];
 
-				// Break out of the loop if it reaches the end
-				// of the input before finishing reading the string
-				if (read_index >= input_len)
-					break;
-
 				// Throw an error if the string is longer than the max
 				// allowed length.
 				if (tmp_index > MAX_IDENT_LENGTH)
 				{
-					error_number = 4; // invalid identifier
-					goto error;
+					THROW_ERROR(4); // invalid identifier
 				}
 			}
 
 			tmp[tmp_index++] = '\0';
 			tmp_index = 0;	 // resetting this variable
-			int word_type = -1; // sentinel value
+			int word_type;
 
 			// Check for reserved words and identifiers
 			// Reserved Words
@@ -157,30 +147,22 @@ lexeme *lexanalyzer(char *input)
 		// Tokenizing a number
 		else if (isdigit(input[read_index]))
 		{
-			// As long as the input continues to be numbers...
+			// Store the number in tmp
 			while (isdigit(input[read_index]))
-			{
-				// Fill tmp with the input characters
 				tmp[tmp_index++] = input[read_index++];
 
-				if (read_index >= input_len)
-					// we reached the end of the file
-					goto end;
-				else if (tmp_index > MAX_NUMBER_LENGTH)
-				{
-					error_number = 3; // number too long
-					goto error;
-				}
-			}
-			tmp[tmp_index++] = '\0'; // to end the string
+			if (tmp_index > MAX_NUMBER_LENGTH)
+				THROW_ERROR(3); // number too long
+
+			tmp[tmp_index++] = '\0'; // ends the string for atoi to work
 			tmp_index = 0;			 // resetting this variable
 
 			if (isalpha(input[read_index]))
 			{
 				// A number followed by a letter
-				error_number = 2; // invalid identifier
-				goto error;
+				THROW_ERROR(2); // invalid identifier
 			}
+
 			list[lex_index].type = numbersym;
 			list[lex_index].value = atoi(tmp);
 			lex_index++;
@@ -190,14 +172,11 @@ lexeme *lexanalyzer(char *input)
 		else if (isSymbolChar(input[read_index]))
 		{
 			while (isSymbolChar(input[read_index]))
-			{
 				tmp[tmp_index++] = input[read_index++];
-				if (read_index >= input_len)
-					break;
-			}
+
 			tmp[tmp_index++] = '\0';
 			char *curSymbol;
-			int symbol_type = -1; // sentinel value
+			int symbol_type;
 
 			/*
 			 * Processing each symbol individually so we can
@@ -228,28 +207,18 @@ lexeme *lexanalyzer(char *input)
 						tmp[i + 1],
 						'\0'
 					};
-					if (i <= tmp_index - 1 && isSymbol(curSymbol))
+					if ((symbol_type = getSymbolType(curSymbol)) != -1)
 					{
-						symbol_type = getSymbolType(curSymbol);
-						
-						if (symbol_type != -1)
-						{
-							list[lex_index++].type = symbol_type;
-							i++;
-							continue;
-						}
+						list[lex_index++].type = symbol_type;
+						i++;
+						continue;
 					}
 				default:
 					curSymbol = (char[]){tmp[i], '\0'};
 					if ((symbol_type = getSymbolType(curSymbol)) != -1)
-					{
 						list[lex_index++].type = symbol_type;
-					}
 					else
-					{
-						error_number = 1; // invalid symbol
-						goto error;
-					}
+						THROW_ERROR(1); // invalid symbol
 				}
 			}
 			tmp_index = 0; // resetting this variable
@@ -257,10 +226,7 @@ lexeme *lexanalyzer(char *input)
 
 		// characters that weren't matched by other ways
 		else
-		{
-			error_number = 1; // invalid symbol
-			goto error;
-		}
+			THROW_ERROR(1); // invalid symbol
 	}
 end:
 	printtokens();
