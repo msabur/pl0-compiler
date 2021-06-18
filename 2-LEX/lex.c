@@ -247,7 +247,7 @@ lexeme *lexanalyzer(char *input)
 					}
 					else
 					{
-						error_number = 1;
+						error_number = 1; // invalid symbol
 						goto error;
 					}
 				}
@@ -255,8 +255,12 @@ lexeme *lexanalyzer(char *input)
 			tmp_index = 0; // resetting this variable
 		}
 
+		// characters that weren't matched by other ways
 		else
-			read_index++;
+		{
+			error_number = 1; // invalid symbol
+			goto error;
+		}
 	}
 end:
 	printtokens();
