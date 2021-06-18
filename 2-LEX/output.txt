@@ -1,1 +1,1 @@
-Lexical Analyzer Error: Neverending Comment
+Lexical Analyzer Error: Invalid Identifier

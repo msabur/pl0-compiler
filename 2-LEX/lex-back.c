@@ -32,39 +32,7 @@ lexeme *lexanalyzer(char *input)
 	int input_len = strlen(input);
 	int error_number = -1;
 
-	//printf("Before removing comments: %s\n", input);
-	/* Replacing comments with whitespace so that they are ignored */
-	int IN_COMMENT = 0;
-	int _lastCommentStart = 0;
-	for (int i = 0; i + 1 < input_len; i++)
-	{
-		if (!IN_COMMENT && input[i] == '/' && input[i + 1] == '*')
-		{
-			IN_COMMENT = 1;
-			_lastCommentStart = i;
-			input[i] = input[i + 1] = ' '; // blank out the /*
-			i++;
-		}
-		if (IN_COMMENT && input[i] == '*' && input[i + 1] == '/')
-		{
-			IN_COMMENT = 0;
-			input[i] = input[i + 1] = ' '; // blank out the */
-			i++;
-		}
-		if (IN_COMMENT) {
-			input[i] = ' '; // blank out comments
-		}
-	}
-	if (IN_COMMENT)
-	{
-		/*
-		error_number = 5; // neverending comment
-		goto error;
-		*/
-		// put some random character to mark the start of a neverending comment
-		input[_lastCommentStart] = '\v';
-	}
-
+	// on error, call printerror and return NULL
 	char tmp[500];
 	*tmp = 0;			// current token
 	int tmp_index = 0;	// next index to read 'tmp[]' from
@@ -76,19 +44,45 @@ lexeme *lexanalyzer(char *input)
 		// Skip invisible characters
 		while (iscntrl(input[read_index]) || isspace(input[read_index]))
 		{
-			if(input[read_index] == '\v') {
-				// a neverending comment had started here
-				error_number = 5; // neverending comment
-				goto error;
-			}
 			read_index++;
 
 			if (read_index >= input_len)
 				goto end;
 		}
+		// If we find a comment, we skip over it.
+		if (input[read_index] == '/' && input[read_index + 1] == '*')
+		{
+			// skip over the [ /* ]
+			read_index += 2;
+			if (read_index + 1 >= input_len)
+			{
+				error_number = 5; // neverending comment
+				goto error;
+			}
+
+			// Until it reaches the end of a comment
+			while (1)
+			{
+				if (input[read_index] == '*' && input[read_index + 1] == '/')
+				{
+					// skip over the [ */ ]
+					read_index += 2;
+					break;
+				}
+
+				read_index++;
+
+				// If the comment doesn't end, throw an error
+				if (read_index >= input_len)
+				{
+					error_number = 5; // neverending comment
+					goto error;
+				}
+			}
+		}
 
 		// Tokenizing a word (identifier or reserved word)
-		if (isalpha(input[read_index]))
+		else if (isalpha(input[read_index]))
 		{
 			// Read in the string of letters and numbers into tmp
 			while (isalnum(input[read_index]))
@@ -97,7 +91,7 @@ lexeme *lexanalyzer(char *input)
 				tmp[tmp_index++] = input[read_index++];
 
 				// Break out of the loop if it reaches the end
-				// of the input before finishing reading the string
+				// of the input
 				if (read_index >= input_len)
 					break;
 
@@ -111,7 +105,7 @@ lexeme *lexanalyzer(char *input)
 			}
 
 			tmp[tmp_index++] = '\0';
-			tmp_index = 0;	 // resetting this variable
+			tmp_index = 0;		// resetting this variable
 			int word_type = -1; // sentinel value
 
 			// Check for reserved words and identifiers
@@ -145,12 +139,13 @@ lexeme *lexanalyzer(char *input)
 			else if (strcmp(tmp, "odd") == 0)
 				word_type = oddsym; // 1
 			// Identifiers
-			else
-				word_type = identsym; // 32
+			else word_type = identsym; // 32
 
 			list[lex_index].type = word_type;
+
 			if (word_type == identsym)
 				strcpy(list[lex_index].name, tmp);
+
 			lex_index++;
 		}
 
@@ -189,14 +184,10 @@ lexeme *lexanalyzer(char *input)
 		// Tokenizing a symbol
 		else if (isSymbolChar(input[read_index]))
 		{
-			while (isSymbolChar(input[read_index]))
-			{
-				tmp[tmp_index++] = input[read_index++];
-				if (read_index >= input_len)
-					break;
-			}
-			tmp[tmp_index++] = '\0';
-			char *curSymbol;
+			char curSymbol[500] = {0};
+			curSymbol[0] = input[read_index];
+			curSymbol[1] = input[read_index + 1];
+			curSymbol[2] = '\0';
 			int symbol_type = -1; // sentinel value
 
 			/*
@@ -204,7 +195,7 @@ lexeme *lexanalyzer(char *input)
 			 * distinguish between symbols clumped together, such
 			 * as "(((x-1))*7)". To test it: <symbolsWithoutWhitespace.txt>.
 			 * The code is ugly but this is the essence of it:
-			 * > for each char in tmp:
+			 * > foreach char in tmp:
 			 * >     if it is the start of a duo:
 			 * >         if the next character completes the duo:
 			 * >             record the duo
@@ -213,44 +204,40 @@ lexeme *lexanalyzer(char *input)
 			 * >     record the char as a symbol, or throw error
 			 * 
 			 */
-			// Run through the string
-			for (int i = 0; i < tmp_index - 1; i++)
+			if (input[read_index] == '=' ||
+					input[read_index] == '<' ||
+					input[read_index] == '>' ||
+					input[read_index] == ':')
 			{
-				switch (tmp[i])
-				{
-				case '=':
-				case '<':
-				case '>':
-				case ':':
-					curSymbol = (char[])
-					{
-						tmp[i],
-						tmp[i + 1],
-						'\0'
-					};
-					if (i <= tmp_index - 1 && isSymbol(curSymbol))
-					{
-						symbol_type = getSymbolType(curSymbol);
-						
-						if (symbol_type != -1)
+				//curSymbol = (char []){input[read_index], input[read_index + 1], '\0'};
+
+				if(input[read_index + 1] != '\0' &&
+						isSymbol(curSymbol))
 						{
-							list[lex_index++].type = symbol_type;
-							i++;
+							printf("Processing double character symbol %s\n", curSymbol);
+							list[lex_index].type = getSymbolType(curSymbol);
+							strcpy(list[lex_index].name, curSymbol);
+							puts(curSymbol);
+							printf("%d\n", curSymbol[2]);
+							lex_index++;
+							read_index += 2;
 							continue;
 						}
-					}
-				default:
-					curSymbol = (char[]){tmp[i], '\0'};
-					if ((symbol_type = getSymbolType(curSymbol)) != -1)
-					{
-						list[lex_index++].type = symbol_type;
-					}
-					else
-					{
-						error_number = 1;
-						goto error;
-					}
-				}
+			}
+			//curSymbol = (char []){input[read_index], '\0'};
+			curSymbol[1] = '\0';
+			printf("Processing single character symbol %s\n", curSymbol);
+			symbol_type = getSymbolType(curSymbol);
+			if (symbol_type != -1)
+			{
+				list[lex_index].type = symbol_type;
+				strcpy(list[lex_index].name, curSymbol);
+				lex_index++;
+				read_index++;
+			}
+			else {
+				error_number = 1;
+				goto error;
 			}
 			tmp_index = 0; // resetting this variable
 		}
@@ -272,8 +259,9 @@ int isSymbol(char *s)
 							  "/", "+", "-", "(", ")", ",", ".", ";", ":="};
 	static int symbols_length = sizeof(symbols) - 1;
 	for (int i = 0; i < symbols_length; i++)
-		if (strcmp(s, symbols[i]))
+		if (strcmp(s, symbols[i]) == 0) {
 			return 1;
+		}
 	return 0;
 }
 
