@@ -13,17 +13,18 @@ Names: Grant Allan, Maahee Abdus Sabur
 #include <string.h>
 #include "compiler.h"
 
-#define THROW_ERROR(x) do{error_number = x; goto error;}while(0)
+#define THROW_ERROR(x) do{printerror(x); return NULL;}while(0)
 
 #define MAX_IDENT_LENGTH 11
 #define MAX_NUMBER_LENGTH 5
+#define NEVERENDING_COMMENT_MARKER '\v'
 
 lexeme *list;
 int lex_index;
 
-int isSymbolChar(int c);
-int isSymbol(char *s);
-int getSymbolType(char *s);
+int isSymbolChar(int c);     // tests if a character is part of a symbol
+int isSymbol(char *s);       // tests if a string is a symbol
+int getSymbolType(char *s);  // finds the type of a symbol
 void printerror(int type);
 void printtokens();
 
@@ -32,9 +33,8 @@ lexeme *lexanalyzer(char *input)
 	list = malloc(500 * sizeof(lexeme));
 	lex_index = 0;
 	int input_len = strlen(input);
-	int error_number = -1;
 
-	/* Replacing comments with whitespace so that they are ignored */
+	/* Replace comments with spaces and mark neverending comments */
 	int IN_COMMENT = 0;
 	int _lastCommentStart = 0;
 	for (int i = 0; i + 1 < input_len; i++)
@@ -57,15 +57,12 @@ lexeme *lexanalyzer(char *input)
 		}
 	}
 	if (IN_COMMENT)
-	{
 		// an uncommon character to mark the start of a neverending comment
-		input[_lastCommentStart] = '\v';
-	}
+		input[_lastCommentStart] = NEVERENDING_COMMENT_MARKER;
 
-	char tmp[500];
-	*tmp = 0;			// current token
-	int tmp_index = 0;	// next index to read 'tmp[]' from
-	int read_index = 0; // next index to read 'input[]' from
+	char tmp[500] = {0}; // current token
+	int tmp_index = 0;	 // next index to read 'tmp[]' from
+	int read_index = 0;  // next index to read 'input[]' from
 
 	// Processes the entire input
 	while (read_index < input_len)
@@ -73,14 +70,15 @@ lexeme *lexanalyzer(char *input)
 		// Skip invisible characters
 		while (iscntrl(input[read_index]) || isspace(input[read_index]))
 		{
-			if(input[read_index] == '\v') {
-				// a neverending comment had started here
-				THROW_ERROR(5); // neverending comment
-			}
-			read_index++;
+			// make sure we don't go past the end of the string
+			if(input[read_index] == '\0')
+				goto END;
 
-			if (read_index >= input_len)
-				goto end;
+			// check if a neverending comment started here
+			else if(input[read_index] == NEVERENDING_COMMENT_MARKER)
+				THROW_ERROR(5);
+
+			read_index++;
 		}
 
 		// Tokenizing a word (identifier or reserved word)
@@ -95,9 +93,7 @@ lexeme *lexanalyzer(char *input)
 				// Throw an error if the string is longer than the max
 				// allowed length.
 				if (tmp_index > MAX_IDENT_LENGTH)
-				{
 					THROW_ERROR(4); // invalid identifier
-				}
 			}
 
 			tmp[tmp_index++] = '\0';
@@ -157,12 +153,11 @@ lexeme *lexanalyzer(char *input)
 			tmp[tmp_index++] = '\0'; // ends the string for atoi to work
 			tmp_index = 0;			 // resetting this variable
 
+			// a number followed by a letter is an error
 			if (isalpha(input[read_index]))
-			{
-				// A number followed by a letter
 				THROW_ERROR(2); // invalid identifier
-			}
 
+			// add the number to the lexeme list
 			list[lex_index].type = numbersym;
 			list[lex_index].value = atoi(tmp);
 			lex_index++;
@@ -182,7 +177,7 @@ lexeme *lexanalyzer(char *input)
 			 * Processing each symbol individually so we can
 			 * distinguish between symbols clumped together, such
 			 * as "(((x-1))*7)". To test it: <symbolsWithoutWhitespace.txt>.
-			 * The code is ugly but this is the essence of it:
+			 * Summary of what this is doing:
 			 * > for each char in tmp:
 			 * >     if it is the start of a duo:
 			 * >         if the next character completes the duo:
@@ -190,9 +185,7 @@ lexeme *lexanalyzer(char *input)
 			 * >             skip the next character
 			 * >             continue
 			 * >     record the char as a symbol, or throw error
-			 * 
 			 */
-			// Run through the string
 			for (int i = 0; i < tmp_index - 1; i++)
 			{
 				switch (tmp[i])
@@ -228,12 +221,10 @@ lexeme *lexanalyzer(char *input)
 		else
 			THROW_ERROR(1); // invalid symbol
 	}
-end:
+
+END:
 	printtokens();
 	return list;
-error:
-	printerror(error_number);
-	return NULL;
 }
 
 int isSymbol(char *s)
