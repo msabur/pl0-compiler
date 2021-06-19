@@ -22,7 +22,7 @@ int lex_index;
 int input_index = 0;
 
 // Set up tmp
-char tmp[500];		// tmp array
+char tmp[500];	   // tmp array
 int tmp_index = 0; // tmp index
 
 // 0 for if there's no error found in the comments,
@@ -46,32 +46,30 @@ void number_processor(char *input);
 void symbol_processor(char *input);
 void error_processor(int error_number);
 
-
 /* Check to see if the input is a symbol */
 int is_symbol(char input_char)
 {
 	switch (input_char)
 	{
-		case '=':
-		case '<':
-		case '>':
-		case '%':
-		case '*':
-		case '/':
-		case '+':
-		case '-':
-		case '(':
-		case ')':
-		case ',':
-		case '.':
-		case ';':
-		case ':':
-			return 1;
-		default:
-			return 0;
+	case '=':
+	case '<':
+	case '>':
+	case '%':
+	case '*':
+	case '/':
+	case '+':
+	case '-':
+	case '(':
+	case ')':
+	case ',':
+	case '.':
+	case ';':
+	case ':':
+		return 1;
+	default:
+		return 0;
 	}
 }
-
 
 /* Process the comment */
 int comment_processor(char *input)
@@ -98,7 +96,6 @@ int comment_processor(char *input)
 	}
 }
 
-
 /* Process the invisible characters */
 void invisible_char_processor(char *input)
 {
@@ -110,7 +107,6 @@ void invisible_char_processor(char *input)
 		invisible_char_processor(input);
 	}
 }
-
 
 /* Process the words */
 void word_processor(char *input)
@@ -173,7 +169,7 @@ void word_processor(char *input)
 	else
 	{
 		list[lex_index].type = identsym; // 32
-		
+
 		// As this is an indentifier, we copy the
 		// identifier onto the list as well.
 		strcpy(list[lex_index].name, tmp);
@@ -182,7 +178,6 @@ void word_processor(char *input)
 	// Increment the list
 	lex_index++;
 }
-
 
 /* Process the numbers */
 void number_processor(char *input)
@@ -211,7 +206,6 @@ void number_processor(char *input)
 	lex_index++;
 }
 
-
 /* Process the symbols */
 void symbol_processor(char *input)
 {
@@ -221,173 +215,176 @@ void symbol_processor(char *input)
 	// A series of switch statements that ape a trie
 	switch (input[input_index])
 	{
+	case '=':
+		switch (input[input_index + 1])
+		{
 		case '=':
-			switch (input[input_index + 1])
-			{
-				case '=':
-				// Set the symbol for "=="
-				symbol_type = eqlsym;
+			// Set the symbol for "=="
+			symbol_type = eqlsym;
 
-				// Move forward two input_index spaces
-				input_index += 2;
-				break; // Break case "=="
-			}
-			break; // Break outer case '='
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case "=="
+		}
+		break; // Break outer case '='
 
-		case '<':
-			switch (input[input_index + 1])
-			{
-				case '>':
-					// Set the symbol for "<>"
-					symbol_type = neqsym;
-
-					// Move forward two input_index spaces
-					input_index += 2;
-					break; // Break case "<>"
-
-				case '=':
-					// Set the symbol for "<="
-					symbol_type = leqsym;
-
-					// Move forward two input_index spaces
-					input_index += 2;
-					break; // Break case "<="
-
-				default:
-					// Set the symbol for "<"
-					symbol_type = lessym;
-
-					// Move forward one input_index space
-					input_index++;
-					break; // Break default case "<"
-			}
-			break; // Break outer case '<'
-		
+	case '<':
+		switch (input[input_index + 1])
+		{
 		case '>':
-			switch (input[input_index + 1])
-			{
-				case '=':
-					// Set the symbol for ">="
-					symbol_type = geqsym;
+			// Set the symbol for "<>"
+			symbol_type = neqsym;
 
-					// Move forward two input_index spaces
-					input_index += 2;
-					break; // Break case ">="
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case "<>"
 
-				default:
-					// Set the symbol for ">"
-					symbol_type = gtrsym;
+		case '=':
+			// Set the symbol for "<="
+			symbol_type = leqsym;
 
-					// Move forward one index space
-					input_index++;
-					break; // Break default case '>'
-			}
-			break; // Break outer case '>'
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case "<="
 
-		case ':':
-			switch(input[input_index + 1])
-			{
-				case '=':
-					// Set the symbol for ":="
-					symbol_type = becomessym;
+		default:
+			// Set the symbol for "<"
+			symbol_type = lessym;
 
-					// Move forward two input_index spaces
-					input_index += 2;
-					break; // Break case ":="
-			}
-			break; // Break outer case ':'
+			// Move forward one input_index space
+			input_index++;
+			break; // Break default case "<"
+		}
+		break; // Break outer case '<'
 
-		case '/':
-			switch (input[input_index + 1])
-			{
-				case '*':
-					// For this case, we just want to send it to the comment
-					// processor without doing anything else.
-					comment_error = comment_processor(input);
-					break; // Break case "/*"
+	case '>':
+		switch (input[input_index + 1])
+		{
+		case '=':
+			// Set the symbol for ">="
+			symbol_type = geqsym;
 
-				default:
-					// Set the symbol for "/"
-					symbol_type = slashsym;
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case ">="
 
-					// Move forward one index space
-					input_index++;
-					break; // Break default case "/"
-			}
-			break; // Break outer case '/'
-
-		case '%':
-			// Set the symbol for "%"
-			symbol_type = modsym;
+		default:
+			// Set the symbol for ">"
+			symbol_type = gtrsym;
 
 			// Move forward one index space
 			input_index++;
-			break; // Break outer case '%'
+			break; // Break default case '>'
+		}
+		break; // Break outer case '>'
 
+	case ':':
+		switch (input[input_index + 1])
+		{
+		case '=':
+			// Set the symbol for ":="
+			symbol_type = becomessym;
+
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case ":="
+		}
+		break; // Break outer case ':'
+
+	case '/':
+		switch (input[input_index + 1])
+		{
 		case '*':
-			// Set the symbol for "*"
-			symbol_type = multsym;
+			// Call the comment_processor
+			comment_error = comment_processor(input);
+
+			// Set the symbol to -2 so as not to
+			// throw an error
+			symbol_type = -2;
+			break; // Break case "/*"
+
+		default:
+			// Set the symbol for "/"
+			symbol_type = slashsym;
 
 			// Move forward one index space
 			input_index++;
-			break; // Break outer case '*'
+			break; // Break default case "/"
+		}
+		break; // Break outer case '/'
 
-		case '+':
-			// Set the symbol for "+"
-			symbol_type = plussym;
+	case '%':
+		// Set the symbol for "%"
+		symbol_type = modsym;
 
-			// Move forward one index space
-			input_index++;
-			break; // Break outer case '+'
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '%'
 
-		case '-':
-			// Set the symbol for "-"
-			symbol_type = minussym;
+	case '*':
+		// Set the symbol for "*"
+		symbol_type = multsym;
 
-			// Move forward one index space
-			input_index++;
-			break; // Break outer case '-'
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '*'
 
-		case '(':
-			// Set the symbol for "("
-			symbol_type = lparentsym;
+	case '+':
+		// Set the symbol for "+"
+		symbol_type = plussym;
 
-			// Move forward one index space
-			input_index++;
-			break; // Break outer case '('
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '+'
 
-		case ')':
-			// Set the symbol for ")"
-			symbol_type = rparentsym;
+	case '-':
+		// Set the symbol for "-"
+		symbol_type = minussym;
 
-			// Move forward one input_index space
-			input_index++;
-			break; // Break outer case ')'
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '-'
 
-		case ',':
-			// Set the symbol for ","
-			symbol_type = commasym;
+	case '(':
+		// Set the symbol for "("
+		symbol_type = lparentsym;
 
-			// Move forward one index space
-			input_index++;
-			break; // Break outer case ','
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '('
 
-		case '.':
-			// Set the symbol for "."
-			symbol_type = periodsym;
+	case ')':
+		// Set the symbol for ")"
+		symbol_type = rparentsym;
 
-			// Move forward one input_index space
-			input_index++;
-			break; // Break outer case '.'
+		// Move forward one input_index space
+		input_index++;
+		break; // Break outer case ')'
 
-		case ';':
-			// Set the symbol for ";"
-			symbol_type = semicolonsym;
+	case ',':
+		// Set the symbol for ","
+		symbol_type = commasym;
 
-			// Move forward one index space
-			input_index++;
-			break; // Break outer case ';'
-	} // Close outer switch statement
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case ','
+
+	case '.':
+		// Set the symbol for "."
+		symbol_type = periodsym;
+
+		// Move forward one input_index space
+		input_index++;
+		break; // Break outer case '.'
+
+	case ';':
+		// Set the symbol for ";"
+		symbol_type = semicolonsym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case ';'
+	}		   // Close outer switch statement
 
 	// Check to see if an error should be thrown
 	if (symbol_type == -1)
@@ -398,7 +395,6 @@ void symbol_processor(char *input)
 	lex_index++;
 }
 
-
 /* Process errors */
 void error_processor(int error_number)
 {
@@ -408,7 +404,6 @@ void error_processor(int error_number)
 	// Set error_checker to true
 	error_checker = 1;
 }
-
 
 /* Fill the lexeme list */
 lexeme *lexanalyzer(char *input)
@@ -453,7 +448,6 @@ lexeme *lexanalyzer(char *input)
 	return list;
 }
 
-
 /* Print out the table using the list */
 void printtokens()
 {
@@ -464,105 +458,105 @@ void printtokens()
 	{
 		switch (list[i].type)
 		{
-			case oddsym:
-				printf("%11s\t%d", "odd", oddsym);
-				break;
-			case eqlsym:
-				printf("%11s\t%d", "==", eqlsym);
-				break;
-			case neqsym:
-				printf("%11s\t%d", "<>", neqsym);
-				break;
-			case lessym:
-				printf("%11s\t%d", "<", lessym);
-				break;
-			case leqsym:
-				printf("%11s\t%d", "<=", leqsym);
-				break;
-			case gtrsym:
-				printf("%11s\t%d", ">", gtrsym);
-				break;
-			case geqsym:
-				printf("%11s\t%d", ">=", geqsym);
-				break;
-			case modsym:
-				printf("%11s\t%d", "%", modsym);
-				break;
-			case multsym:
-				printf("%11s\t%d", "*", multsym);
-				break;
-			case slashsym:
-				printf("%11s\t%d", "/", slashsym);
-				break;
-			case plussym:
-				printf("%11s\t%d", "+", plussym);
-				break;
-			case minussym:
-				printf("%11s\t%d", "-", minussym);
-				break;
-			case lparentsym:
-				printf("%11s\t%d", "(", lparentsym);
-				break;
-			case rparentsym:
-				printf("%11s\t%d", ")", rparentsym);
-				break;
-			case commasym:
-				printf("%11s\t%d", ",", commasym);
-				break;
-			case periodsym:
-				printf("%11s\t%d", ".", periodsym);
-				break;
-			case semicolonsym:
-				printf("%11s\t%d", ";", semicolonsym);
-				break;
-			case becomessym:
-				printf("%11s\t%d", ":=", becomessym);
-				break;
-			case beginsym:
-				printf("%11s\t%d", "begin", beginsym);
-				break;
-			case endsym:
-				printf("%11s\t%d", "end", endsym);
-				break;
-			case ifsym:
-				printf("%11s\t%d", "if", ifsym);
-				break;
-			case thensym:
-				printf("%11s\t%d", "then", thensym);
-				break;
-			case elsesym:
-				printf("%11s\t%d", "else", elsesym);
-				break;
-			case whilesym:
-				printf("%11s\t%d", "while", whilesym);
-				break;
-			case dosym:
-				printf("%11s\t%d", "do", dosym);
-				break;
-			case callsym:
-				printf("%11s\t%d", "call", callsym);
-				break;
-			case writesym:
-				printf("%11s\t%d", "write", writesym);
-				break;
-			case readsym:
-				printf("%11s\t%d", "read", readsym);
-				break;
-			case constsym:
-				printf("%11s\t%d", "const", constsym);
-				break;
-			case varsym:
-				printf("%11s\t%d", "var", varsym);
-				break;
-			case procsym:
-				printf("%11s\t%d", "procedure", procsym);
-				break;
-			case identsym:
-				printf("%11s\t%d", list[i].name, identsym);
-				break;
-			case numbersym:
-				printf("%11d\t%d", list[i].value, numbersym);
-				break;
+		case oddsym:
+			printf("%11s\t%d", "odd", oddsym);
+			break;
+		case eqlsym:
+			printf("%11s\t%d", "==", eqlsym);
+			break;
+		case neqsym:
+			printf("%11s\t%d", "<>", neqsym);
+			break;
+		case lessym:
+			printf("%11s\t%d", "<", lessym);
+			break;
+		case leqsym:
+			printf("%11s\t%d", "<=", leqsym);
+			break;
+		case gtrsym:
+			printf("%11s\t%d", ">", gtrsym);
+			break;
+		case geqsym:
+			printf("%11s\t%d", ">=", geqsym);
+			break;
+		case modsym:
+			printf("%11s\t%d", "%", modsym);
+			break;
+		case multsym:
+			printf("%11s\t%d", "*", multsym);
+			break;
+		case slashsym:
+			printf("%11s\t%d", "/", slashsym);
+			break;
+		case plussym:
+			printf("%11s\t%d", "+", plussym);
+			break;
+		case minussym:
+			printf("%11s\t%d", "-", minussym);
+			break;
+		case lparentsym:
+			printf("%11s\t%d", "(", lparentsym);
+			break;
+		case rparentsym:
+			printf("%11s\t%d", ")", rparentsym);
+			break;
+		case commasym:
+			printf("%11s\t%d", ",", commasym);
+			break;
+		case periodsym:
+			printf("%11s\t%d", ".", periodsym);
+			break;
+		case semicolonsym:
+			printf("%11s\t%d", ";", semicolonsym);
+			break;
+		case becomessym:
+			printf("%11s\t%d", ":=", becomessym);
+			break;
+		case beginsym:
+			printf("%11s\t%d", "begin", beginsym);
+			break;
+		case endsym:
+			printf("%11s\t%d", "end", endsym);
+			break;
+		case ifsym:
+			printf("%11s\t%d", "if", ifsym);
+			break;
+		case thensym:
+			printf("%11s\t%d", "then", thensym);
+			break;
+		case elsesym:
+			printf("%11s\t%d", "else", elsesym);
+			break;
+		case whilesym:
+			printf("%11s\t%d", "while", whilesym);
+			break;
+		case dosym:
+			printf("%11s\t%d", "do", dosym);
+			break;
+		case callsym:
+			printf("%11s\t%d", "call", callsym);
+			break;
+		case writesym:
+			printf("%11s\t%d", "write", writesym);
+			break;
+		case readsym:
+			printf("%11s\t%d", "read", readsym);
+			break;
+		case constsym:
+			printf("%11s\t%d", "const", constsym);
+			break;
+		case varsym:
+			printf("%11s\t%d", "var", varsym);
+			break;
+		case procsym:
+			printf("%11s\t%d", "procedure", procsym);
+			break;
+		case identsym:
+			printf("%11s\t%d", list[i].name, identsym);
+			break;
+		case numbersym:
+			printf("%11d\t%d", list[i].value, numbersym);
+			break;
 		}
 		printf("\n");
 	}
@@ -581,7 +575,6 @@ void printtokens()
 	list[lex_index++].type = -1;
 }
 
-
 /* Print out what error was thrown */
 void printerror(int type)
 {
@@ -597,6 +590,6 @@ void printerror(int type)
 		printf("Lexical Analyzer Error: Neverending Comment\n");
 	else
 		printf("Implementation Error: Unrecognized Error Type\n");
-	
+
 	return;
 }
