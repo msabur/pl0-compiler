@@ -42,37 +42,28 @@ lexeme *lexanalyzer(char *input)
 	while (read_index < input_len)
 	{
 		/* Skip invisible characters */
-		while (iscntrl(input[read_index]) || isspace(input[read_index]))
-		{
-			// Make sure we don't go past the end of the string
-			if(input[read_index] == '\0')
-				goto END;
-
+		if (iscntrl(input[read_index]) || isspace(input[read_index]))
 			read_index++;
-		}
 
 		/* Handling comments */
-		if (!IN_COMMENT && input[read_index] == '/' && input[read_index + 1] == '*')
+		else if (!IN_COMMENT && input[read_index] == '/' && input[read_index + 1] == '*')
 		{
 			// entered a comment
 			IN_COMMENT = 1;
-			read_index += 2;
+			read_index += 2; // skip the /*
 		}
-		if (IN_COMMENT && input[read_index] == '*' && input[read_index + 1] == '/')
+		else if (IN_COMMENT && input[read_index] == '*' && input[read_index + 1] == '/')
 		{
 			// exited a comment
 			IN_COMMENT = 0;
-			read_index += 2;
-			continue; // to skip invisible characters after a comment end
+			read_index += 2; // skip the */
 		}
-		if (IN_COMMENT) {
-			// inside a comment
+		else if (IN_COMMENT) {
 			read_index++;
-			continue;
 		}
 
 		/* Tokenizing a word (identifier or reserved word) */
-		if (isalpha(input[read_index]))
+		else if (isalpha(input[read_index]))
 		{
 			// Read in the string of letters and numbers into tmp
 			while (isalnum(input[read_index]))
