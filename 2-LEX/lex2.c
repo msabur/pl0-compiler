@@ -1,9 +1,9 @@
 /*
-	This is the lex skeleton for the UCF Summer 2021 Systems Software Project
-	Implement the function lexanalyzer, add as many functions and global
-	variables as desired, but do not alter printerror or printtokens.
-	Include your name (and your partner's name) in this comment in order to 
-	earn the points for compiling
+ * COP 3402 - Systems Software
+ * Summer 2021
+ * Homework #2 (Lexical Analyzer)
+ * Authors: Maahee, Grant Allan
+ * Due: 6/25/2021
 */
 
 #include <stdlib.h>
@@ -21,9 +21,9 @@ int lex_index;
 // To keep track of our position in the input
 int input_index = 0;
 
-// on error, call printerror and return NULL
-char tmp[500];
-int tmp_index = 0; // next index to read 'tmp[]' from
+// Set up tmp
+char tmp[500];		// tmp array
+int tmp_index = 0; // tmp index
 
 // 0 for if there's no error found in the comments,
 // 1 for if there is.
@@ -36,7 +36,7 @@ void printerror(int type);
 void printtokens();
 
 // Method to see if an input character is a symbol
-int is_symbol(int c);
+int is_symbol(char input_char);
 
 // Methods to process everything
 int comment_processor(char *input);
@@ -46,20 +46,34 @@ void number_processor(char *input);
 void symbol_processor(char *input);
 void error_processor(int error_number);
 
-// Check to see if the input is a symbol
-int is_symbol(int c)
+
+/* Check to see if the input is a symbol */
+int is_symbol(char input_char)
 {
-	static char symbolCharacters[] = "=<>%*/+-(),.;:";
-	static int symbolCharacters_length = sizeof(symbolCharacters) - 1;
-	
-	for (int i = 0; i < symbolCharacters_length; i++)
-		if (c == symbolCharacters[i])
+	switch (input_char)
+	{
+		case '=':
+		case '<':
+		case '>':
+		case '%':
+		case '*':
+		case '/':
+		case '+':
+		case '-':
+		case '(':
+		case ')':
+		case ',':
+		case '.':
+		case ';':
+		case ':':
 			return 1;
-	
-	return 0;
+		default:
+			return 0;
+	}
 }
 
-// Process the comment
+
+/* Process the comment */
 int comment_processor(char *input)
 {
 	// Checks to see if the comment ends.
@@ -84,7 +98,8 @@ int comment_processor(char *input)
 	}
 }
 
-// Process the invisible characters
+
+/* Process the invisible characters */
 void invisible_char_processor(char *input)
 {
 	// If we're on an invisible character, recursive call
@@ -97,16 +112,15 @@ void invisible_char_processor(char *input)
 }
 
 
-// Process the words
+/* Process the words */
 void word_processor(char *input)
 {
 	// Read in the string of letters and numbers into tmp
 	while (isalnum(input[input_index]))
 	{
-		// Fill tmp with the input characters, then increment
-		// the input_index
-		tmp[input_index] = input[input_index];
-		input_index++;
+		// Add the input character to tmp, then increment
+		// both indexes
+		tmp[tmp_index++] = input[input_index++];
 
 		// Break out of the loop if it reaches the end
 		// of the input
@@ -116,7 +130,7 @@ void word_processor(char *input)
 		// Throw an error if the string is longer than the max
 		// allowed length.
 		if (tmp_index > MAX_IDENT_LENGTH)
-			error_processor(4); // Invalid Identifier
+			error_processor(4); // Excessive Identifier Length
 	}
 
 	// End the string
@@ -157,196 +171,223 @@ void word_processor(char *input)
 		list[lex_index].type = oddsym; // 1
 	// Identifiers
 	else
-		strcpy(list[lex_index].name, tmp); // 32
+	{
+		list[lex_index].type = identsym; // 32
+		
+		// As this is an indentifier, we copy the
+		// identifier onto the list as well.
+		strcpy(list[lex_index].name, tmp);
+	}
 
 	// Increment the list
 	lex_index++;
 }
 
-// Process the numbers
+
+/* Process the numbers */
 void number_processor(char *input)
 {
 	// As long as the input continues to be numbers...
 	while (isdigit(input[input_index]))
-	{
-		// Fill tmp with the input characters, then increment
-		// the input_index
-		tmp[input_index] = input[input_index];
-		input_index++;
+		tmp[tmp_index++] = input[input_index++];
 
-		if (input_index >= strlen(input))
-			break;
-		else if (tmp_index > MAX_NUMBER_LENGTH)
-			error_processor(3); // Invalid Number Length
-	}
+	if (tmp_index > MAX_NUMBER_LENGTH)
+		error_processor(3); // Excessive Number Length
 
 	// End the string
 	tmp[tmp_index] = '\0';
-	
+
 	// Reset tmp_index
 	tmp_index = 0;
 
+	// Checks to see if the next character is a letter
 	if (isalpha(input[input_index]))
-		// A number followed by a letter
 		error_processor(2); // Invalid Identifier
 
+	// Add the number symbol to the list along with the actual
+	// string of numbers, then increment the list index.
 	list[lex_index].type = numbersym;
 	list[lex_index].value = atoi(tmp);
 	lex_index++;
 }
 
-// Process the symbols
+
+/* Process the symbols */
 void symbol_processor(char *input)
 {
 	// Initialize symbol_type operator
 	int symbol_type = -1;
 
-	// A series of if/else that ape a trie
-	if (input[input_index] == '=')
-		if (input[input_index + 1] == '=')
-		{
-			// Set the symbol for "=="
-			symbol_type = eqlsym;
+	// A series of switch statements that ape a trie
+	switch (input[input_index])
+	{
+		case '=':
+			switch (input[input_index + 1])
+			{
+				case '=':
+				// Set the symbol for "=="
+				symbol_type = eqlsym;
 
-			// Move forward two input_index spaces
-			input_index += 2;
-		}
-	else if (input[input_index] == '<')
-		if (input[input_index + 1] == '>')
-		{
-			// Set the symbol for "<>"
-			symbol_type = neqsym;
+				// Move forward two input_index spaces
+				input_index += 2;
+				break; // Break case "=="
+			}
+			break; // Break outer case '='
 
-			// Move forward two input_index spaces
-			input_index += 2;
-		}
-		else if (input[input_index + 1] == '=')
-		{
-			// Set the symbol for "<="
-			symbol_type = leqsym;
+		case '<':
+			switch (input[input_index + 1])
+			{
+				case '>':
+					// Set the symbol for "<>"
+					symbol_type = neqsym;
 
-			// Move forward two input_index spaces
-			input_index += 2;
-		}
-		else
-		{
-			// Set the symbol for "<"
-			symbol_type = lessym;
+					// Move forward two input_index spaces
+					input_index += 2;
+					break; // Break case "<>"
 
-			// Move forward one input_index space
-			input_index++;
-		}
-	else if (input[input_index] == '>')
-		if (input[input_index + 1] == '=')
-		{
-			// Set the symbol for ">="
-			symbol_type = geqsym;
+				case '=':
+					// Set the symbol for "<="
+					symbol_type = leqsym;
 
-			// Move forward two input_index spaces
-			input_index += 2;
-		}
-		else
-		{
-			// Set the symbol for ">"
+					// Move forward two input_index spaces
+					input_index += 2;
+					break; // Break case "<="
+
+				default:
+					// Set the symbol for "<"
+					symbol_type = lessym;
+
+					// Move forward one input_index space
+					input_index++;
+					break; // Break default case "<"
+			}
+			break; // Break outer case '<'
+		
+		case '>':
+			switch (input[input_index + 1])
+			{
+				case '=':
+					// Set the symbol for ">="
+					symbol_type = geqsym;
+
+					// Move forward two input_index spaces
+					input_index += 2;
+					break; // Break case ">="
+
+				default:
+					// Set the symbol for ">"
+					symbol_type = gtrsym;
+
+					// Move forward one index space
+					input_index++;
+					break; // Break default case '>'
+			}
+			break; // Break outer case '>'
+
+		case ':':
+			switch(input[input_index + 1])
+			{
+				case '=':
+					// Set the symbol for ":="
+					symbol_type = becomessym;
+
+					// Move forward two input_index spaces
+					input_index += 2;
+					break; // Break case ":="
+			}
+			break; // Break outer case ':'
+
+		case '/':
+			switch (input[input_index + 1])
+			{
+				case '*':
+					// For this case, we just want to send it to the comment
+					// processor without doing anything else.
+					comment_error = comment_processor(input);
+					break; // Break case "/*"
+
+				default:
+					// Set the symbol for "/"
+					symbol_type = slashsym;
+
+					// Move forward one index space
+					input_index++;
+					break; // Break default case "/"
+			}
+			break; // Break outer case '/'
+
+		case '%':
+			// Set the symbol for "%"
 			symbol_type = modsym;
 
 			// Move forward one index space
 			input_index++;
-		}
-	else if (input[input_index] == ':')
-		if (input[input_index + 1] == '=')
-		{
-			// Set the symbol for ":="
-			symbol_type = becomessym;
+			break; // Break outer case '%'
 
-			// Move forward two input_index spaces
-			input_index += 2;
-		}
-	// This could cause an issue
-	else if (input[input_index] == '/')
-		if (input[input_index + 1] == '*')
-			comment_error = comment_processor(input);
-		else
-		{
-			
-			// Set the symbol for ">"
-			symbol_type = slashsym;
+		case '*':
+			// Set the symbol for "*"
+			symbol_type = multsym;
 
 			// Move forward one index space
 			input_index++;
-		}
-	else if (input[input_index] == '%')
-	{
-		// Set the symbol for "%"
-		symbol_type = modsym;
+			break; // Break outer case '*'
 
-		// Move forward one index space
-		input_index++;
-	}
-	else if (input[input_index] == '*')
-	{
-		// Set the symbol for "*"
-		symbol_type = multsym;
+		case '+':
+			// Set the symbol for "+"
+			symbol_type = plussym;
 
-		// Move forward one index space
-		input_index++;
-	}
-	else if (input[input_index] == '+')
-	{
-		// Set the symbol for "+"
-		symbol_type = plussym;
+			// Move forward one index space
+			input_index++;
+			break; // Break outer case '+'
 
-		// Move forward one index space
-		input_index++;
-	}
-	else if (input[input_index] == '-')
-	{
-		// Set the symbol for "-"
-		symbol_type = minussym;
+		case '-':
+			// Set the symbol for "-"
+			symbol_type = minussym;
 
-		// Move forward one index space
-		input_index++;
-	}
-	else if (input[input_index] == '(')
-	{
-		// Set the symbol for "("
-		symbol_type = lparentsym;
+			// Move forward one index space
+			input_index++;
+			break; // Break outer case '-'
 
-		// Move forward one index space
-		input_index++;
-	}
-	else if (input[input_index] == ')')
-	{
-		// Set the symbol for ")"
-		symbol_type = rparentsym;
+		case '(':
+			// Set the symbol for "("
+			symbol_type = lparentsym;
 
-		// Move forward one input_index space
-		input_index++;
-	}
-	else if (input[input_index] == ',')
-	{
-		// Set the symbol for ","
-		symbol_type = commasym;
+			// Move forward one index space
+			input_index++;
+			break; // Break outer case '('
 
-		// Move forward one index space
-		input_index++;
-	}
-	else if (input[input_index] == '.')
-	{
-		// Set the symbol for "."
-		symbol_type = periodsym;
+		case ')':
+			// Set the symbol for ")"
+			symbol_type = rparentsym;
 
-		// Move forward one input_index space
-		input_index++;
-	}
-	else if (input[input_index] == ';')
-	{
-		// Set the symbol for ";"
-		symbol_type = semicolonsym;
+			// Move forward one input_index space
+			input_index++;
+			break; // Break outer case ')'
 
-		// Move forward one index space
-		input_index++;
-	}
+		case ',':
+			// Set the symbol for ","
+			symbol_type = commasym;
+
+			// Move forward one index space
+			input_index++;
+			break; // Break outer case ','
+
+		case '.':
+			// Set the symbol for "."
+			symbol_type = periodsym;
+
+			// Move forward one input_index space
+			input_index++;
+			break; // Break outer case '.'
+
+		case ';':
+			// Set the symbol for ";"
+			symbol_type = semicolonsym;
+
+			// Move forward one index space
+			input_index++;
+			break; // Break outer case ';'
+	} // Close outer switch statement
 
 	// Check to see if an error should be thrown
 	if (symbol_type == -1)
@@ -357,7 +398,8 @@ void symbol_processor(char *input)
 	lex_index++;
 }
 
-// Process errors
+
+/* Process errors */
 void error_processor(int error_number)
 {
 	// Call printerror
@@ -367,14 +409,17 @@ void error_processor(int error_number)
 	error_checker = 1;
 }
 
+
+/* Fill the lexeme list */
 lexeme *lexanalyzer(char *input)
 {
+	// Allocate space for the list of lexemes and initialize
+	// the list index at 0
 	list = malloc(500 * sizeof(lexeme));
 	lex_index = 0;
 
-	int input_length = strlen(input);
-
-	while (input_index < input_length && error_checker == 0)
+	// While there's still input to be processed and no errors
+	while (input_index < strlen(input) && error_checker == 0)
 	{
 		// Check for comments
 		if (input[input_index] == '/' && input[input_index + 1] == '*')
@@ -399,11 +444,17 @@ lexeme *lexanalyzer(char *input)
 
 	// Check to see if there was a comment error
 	if (comment_error == 1)
-		error_processor(5);
+		error_processor(5); // Neverending Comment
+
+	// Print out the table, but only if there's no errors.
+	if (error_checker == 0)
+		printtokens();
 
 	return list;
 }
 
+
+/* Print out the table using the list */
 void printtokens()
 {
 	int i;
@@ -530,6 +581,8 @@ void printtokens()
 	list[lex_index++].type = -1;
 }
 
+
+/* Print out what error was thrown */
 void printerror(int type)
 {
 	if (type == 1)
@@ -545,6 +598,5 @@ void printerror(int type)
 	else
 		printf("Implementation Error: Unrecognized Error Type\n");
 	
-	free(list);
 	return;
 }

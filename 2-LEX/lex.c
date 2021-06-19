@@ -1,10 +1,9 @@
 /*
-   This is the lex skeleton for the UCF Summer 2021 Systems Software Project
-   Implement the function lexanalyzer, add as many functions and global
-   variables as desired, but do not alter printerror or printtokens.
-   Include your name (and your partner's name) in this comment in order to 
-   earn the points for compiling
-Names: Grant Allan, Maahee Abdus Sabur
+ * COP 3402 - Systems Software
+ * Summer 2021
+ * Homework #2 (Lexical Analyzer)
+ * Authors: Maahee, Grant Allan
+ * Due: 6/25/2021
 */
 
 #include <stdlib.h>
