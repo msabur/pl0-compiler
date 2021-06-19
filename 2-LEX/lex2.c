@@ -421,19 +421,19 @@ lexeme *lexanalyzer(char *input)
 			comment_error = comment_processor(input);
 
 		// Check for invisible characters
-		if (iscntrl(input[input_index]) || isspace(input[input_index]))
+		else if (iscntrl(input[input_index]) || isspace(input[input_index]))
 			invisible_char_processor(input);
 
 		// Check for words
-		if (isalpha(input[input_index]))
+		else if (isalpha(input[input_index]))
 			word_processor(input);
 
 		// Check for numbers
-		if (isdigit(input[input_index]))
+		else if (isdigit(input[input_index]))
 			number_processor(input);
 
 		// Check for symbols
-		if (is_symbol(input[input_index]))
+		else if (is_symbol(input[input_index]))
 			symbol_processor(input);
 	}
 
