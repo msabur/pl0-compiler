@@ -229,7 +229,7 @@ END:
 
 int isSymbol(char *s)
 {
-	static char *symbols[] = {"==", "<>", "<", "<-", ">", ">=", "%", "*",
+	static char *symbols[] = {"==", "<>", "<", "<=", ">", ">=", "%", "*",
 							  "/", "+", "-", "(", ")", ",", ".", ";", ":="};
 	static int symbols_length = sizeof(symbols) - 1;
 	for (int i = 0; i < symbols_length; i++)
