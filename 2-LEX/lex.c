@@ -17,7 +17,6 @@ Names: Grant Allan, Maahee Abdus Sabur
 
 #define MAX_IDENT_LENGTH 11
 #define MAX_NUMBER_LENGTH 5
-#define NEVERENDING_COMMENT_MARKER '\v'
 
 lexeme *list;
 int lex_index;
@@ -25,8 +24,8 @@ int lex_index;
 int isSymbolChar(int c);     // tests if a character is part of a symbol
 int isSymbol(char *s);       // tests if a string is a symbol
 int getSymbolType(char *s);  // finds the type of a symbol
-void printerror(int type);
-void printtokens();
+void printerror(int type);   // prints an error and frees the list
+void printtokens();          // prints the tokens in the list
 
 lexeme *lexanalyzer(char *input)
 {
@@ -34,54 +33,45 @@ lexeme *lexanalyzer(char *input)
 	lex_index = 0;
 	int input_len = strlen(input);
 
-	/* Replace comments with spaces and mark neverending comments */
-	int IN_COMMENT = 0;
-	int _lastCommentStart = 0;
-	for (int i = 0; i + 1 < input_len; i++)
-	{
-		if (!IN_COMMENT && input[i] == '/' && input[i + 1] == '*')
-		{
-			IN_COMMENT = 1;
-			_lastCommentStart = i;
-			input[i] = input[i + 1] = ' '; // blank out the /*
-			i++;
-		}
-		if (IN_COMMENT && input[i] == '*' && input[i + 1] == '/')
-		{
-			IN_COMMENT = 0;
-			input[i] = input[i + 1] = ' '; // blank out the */
-			i++;
-		}
-		if (IN_COMMENT) {
-			input[i] = ' '; // blank out comments
-		}
-	}
-	if (IN_COMMENT)
-		// an uncommon character to mark the start of a neverending comment
-		input[_lastCommentStart] = NEVERENDING_COMMENT_MARKER;
-
 	char tmp[500] = {0}; // current token
 	int tmp_index = 0;	 // next index to read 'tmp[]' from
 	int read_index = 0;  // next index to read 'input[]' from
+	int IN_COMMENT = 0;  // tells if we are in a comment or not
 
 	// Processes the entire input
 	while (read_index < input_len)
 	{
-		// Skip invisible characters
+		/* Skip invisible characters */
 		while (iscntrl(input[read_index]) || isspace(input[read_index]))
 		{
-			// make sure we don't go past the end of the string
+			// Make sure we don't go past the end of the string
 			if(input[read_index] == '\0')
 				goto END;
-
-			// check if a neverending comment started here
-			else if(input[read_index] == NEVERENDING_COMMENT_MARKER)
-				THROW_ERROR(5);
 
 			read_index++;
 		}
 
-		// Tokenizing a word (identifier or reserved word)
+		/* Handling comments */
+		if (!IN_COMMENT && input[read_index] == '/' && input[read_index + 1] == '*')
+		{
+			// entered a comment
+			IN_COMMENT = 1;
+			read_index += 2;
+		}
+		if (IN_COMMENT && input[read_index] == '*' && input[read_index + 1] == '/')
+		{
+			// exited a comment
+			IN_COMMENT = 0;
+			read_index += 2;
+			continue; // to skip invisible characters after a comment end
+		}
+		if (IN_COMMENT) {
+			// inside a comment
+			read_index++;
+			continue;
+		}
+
+		/* Tokenizing a word (identifier or reserved word) */
 		if (isalpha(input[read_index]))
 		{
 			// Read in the string of letters and numbers into tmp
@@ -140,7 +130,7 @@ lexeme *lexanalyzer(char *input)
 			lex_index++;
 		}
 
-		// Tokenizing a number
+		/* Tokenizing a number */
 		else if (isdigit(input[read_index]))
 		{
 			// Store the number in tmp
@@ -163,66 +153,54 @@ lexeme *lexanalyzer(char *input)
 			lex_index++;
 		}
 
-		// Tokenizing a symbol
+		/* Tokenizing a symbol */
 		else if (isSymbolChar(input[read_index]))
 		{
-			while (isSymbolChar(input[read_index]))
-				tmp[tmp_index++] = input[read_index++];
-
-			tmp[tmp_index++] = '\0';
 			char *curSymbol;
 			int symbol_type;
 
-			/*
-			 * Processing each symbol individually so we can
-			 * distinguish between symbols clumped together, such
-			 * as "(((x-1))*7)". To test it: <symbolsWithoutWhitespace.txt>.
-			 * Summary of what this is doing:
-			 * > for each char in tmp:
-			 * >     if it is the start of a duo:
-			 * >         if the next character completes the duo:
-			 * >             record the duo
-			 * >             skip the next character
-			 * >             continue
-			 * >     record the char as a symbol, or throw error
-			 */
-			for (int i = 0; i < tmp_index - 1; i++)
+			switch (input[read_index])
 			{
-				switch (tmp[i])
+			case '=':
+			case '<':
+			case '>':
+			case ':':
+				// trying to read a two-character symbol
+				curSymbol = (char[])
 				{
-				case '=':
-				case '<':
-				case '>':
-				case ':':
-					curSymbol = (char[])
-					{
-						tmp[i],
-						tmp[i + 1],
-						'\0'
-					};
-					if ((symbol_type = getSymbolType(curSymbol)) != -1)
-					{
-						list[lex_index++].type = symbol_type;
-						i++;
-						continue;
-					}
-				default:
-					curSymbol = (char[]){tmp[i], '\0'};
-					if ((symbol_type = getSymbolType(curSymbol)) != -1)
-						list[lex_index++].type = symbol_type;
-					else
-						THROW_ERROR(1); // invalid symbol
+					input[read_index],
+					input[read_index + 1],
+					'\0'
+				};
+				if ((symbol_type = getSymbolType(curSymbol)) != -1)
+				{
+					list[lex_index++].type = symbol_type;
+					read_index += 2;
+					break;
 				}
+			default:
+				// trying to read a single-character symbol
+				curSymbol = (char[]){input[read_index], '\0'};
+				if ((symbol_type = getSymbolType(curSymbol)) != -1)
+				{
+					list[lex_index++].type = symbol_type;
+					read_index++;
+				}
+				else
+					THROW_ERROR(1); // invalid symbol
 			}
 			tmp_index = 0; // resetting this variable
 		}
 
-		// characters that weren't matched by other ways
+		// Characters not matched by other ways are invalid symbols
 		else
 			THROW_ERROR(1); // invalid symbol
 	}
 
 END:
+	// if we are still in a comment after going through the entire file
+	if(IN_COMMENT)
+		THROW_ERROR(5); // neverending comment
 	printtokens();
 	return list;
 }
