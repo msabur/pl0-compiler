@@ -18,13 +18,19 @@
 #define MAX_NUMBER_LENGTH 5
 
 lexeme *list;
-int lex_index;
+int lex_index;       // next index to write to lexeme list
+char tmp[500] = {0}; // buffer to store current token
+int tmp_index = 0;	 // next index to read 'tmp[]' from
+int read_index = 0;  // next index to read 'input[]' from
 
-int isSymbolChar(int c);     // tests if a character is part of a symbol
-int isSymbol(char *s);       // tests if a string is a symbol
-int getSymbolType(char *s);  // finds the type of a symbol
-void printerror(int type);   // prints an error and frees the list
-void printtokens();          // prints the tokens in the list
+int isSymbolChar(int c);
+int isSymbol(char *s);
+int getSymbolType(char *s);
+int processSymbol(char * input);
+int processNumber(char * input);
+int processWord(char * input);
+void printerror(int type);
+void printtokens();
 
 lexeme *lexanalyzer(char *input)
 {
@@ -32,13 +38,11 @@ lexeme *lexanalyzer(char *input)
 	lex_index = 0;
 	int input_len = strlen(input);
 
-	char tmp[500] = {0}; // current token
-	int tmp_index = 0;	 // next index to read 'tmp[]' from
-	int read_index = 0;  // next index to read 'input[]' from
+	int error_number = 0; // 0 means no error, nonzero means error
 	int IN_COMMENT = 0;  // tells if we are in a comment or not
 
 	// Processes the entire input
-	while (read_index < input_len)
+	while (error_number == 0 && read_index < input_len)
 	{
 		/* Skip invisible characters */
 		if (iscntrl(input[read_index]) || isspace(input[read_index]))
@@ -63,137 +67,150 @@ lexeme *lexanalyzer(char *input)
 
 		/* Tokenizing a word (identifier or reserved word) */
 		else if (isalpha(input[read_index]))
-		{
-			// Read in the string of letters and numbers into tmp
-			while (isalnum(input[read_index]))
-			{
-				// Fill tmp with the input characters
-				tmp[tmp_index++] = input[read_index++];
-
-				// Throw an error if the string is longer than the max
-				// allowed length.
-				if (tmp_index > MAX_IDENT_LENGTH)
-					THROW_ERROR(4); // invalid identifier
-			}
-
-			tmp[tmp_index++] = '\0';
-			tmp_index = 0;	 // resetting this variable
-			int word_type;
-
-			// Check for reserved words and identifiers
-			// Reserved Words
-			if (strcmp(tmp, "const") == 0)
-				word_type = constsym; // 29
-			else if (strcmp(tmp, "var") == 0)
-				word_type = varsym; // 30
-			else if (strcmp(tmp, "procedure") == 0)
-				word_type = procsym; // 31
-			else if (strcmp(tmp, "call") == 0)
-				word_type = callsym; // 26
-			else if (strcmp(tmp, "if") == 0)
-				word_type = ifsym; // 21
-			else if (strcmp(tmp, "then") == 0)
-				word_type = thensym; // 22
-			else if (strcmp(tmp, "else") == 0)
-				word_type = elsesym; // 23
-			else if (strcmp(tmp, "while") == 0)
-				word_type = whilesym; // 24
-			else if (strcmp(tmp, "do") == 0)
-				word_type = dosym; // 25
-			else if (strcmp(tmp, "begin") == 0)
-				word_type = beginsym; // 19
-			else if (strcmp(tmp, "end") == 0)
-				word_type = endsym; // 20
-			else if (strcmp(tmp, "read") == 0)
-				word_type = readsym; // 28
-			else if (strcmp(tmp, "write") == 0)
-				word_type = writesym; // 27
-			else if (strcmp(tmp, "odd") == 0)
-				word_type = oddsym; // 1
-			// Identifiers
-			else
-				word_type = identsym; // 32
-
-			list[lex_index].type = word_type;
-			if (word_type == identsym)
-				strcpy(list[lex_index].name, tmp);
-			lex_index++;
-		}
+			error_number = processWord(input);
 
 		/* Tokenizing a number */
 		else if (isdigit(input[read_index]))
-		{
-			// Store the number in tmp
-			while (isdigit(input[read_index]))
-				tmp[tmp_index++] = input[read_index++];
-
-			if (tmp_index > MAX_NUMBER_LENGTH)
-				THROW_ERROR(3); // number too long
-
-			tmp[tmp_index++] = '\0'; // ends the string for atoi to work
-			tmp_index = 0;			 // resetting this variable
-
-			// a number followed by a letter is an error
-			if (isalpha(input[read_index]))
-				THROW_ERROR(2); // invalid identifier
-
-			// add the number to the lexeme list
-			list[lex_index].type = numbersym;
-			list[lex_index].value = atoi(tmp);
-			lex_index++;
-		}
+			error_number = processNumber(input);
 
 		/* Tokenizing a symbol */
 		else if (isSymbolChar(input[read_index]))
-		{
-			char *curSymbol;
-			int symbol_type;
-
-			switch (input[read_index])
-			{
-			case '=':
-			case '<':
-			case '>':
-			case ':':
-				// trying to read a two-character symbol
-				curSymbol = (char[])
-				{
-					input[read_index],
-					input[read_index + 1],
-					'\0'
-				};
-				if ((symbol_type = getSymbolType(curSymbol)) != -1)
-				{
-					list[lex_index++].type = symbol_type;
-					read_index += 2;
-					break;
-				}
-			default:
-				// trying to read a single-character symbol
-				curSymbol = (char[]){input[read_index], '\0'};
-				if ((symbol_type = getSymbolType(curSymbol)) != -1)
-				{
-					list[lex_index++].type = symbol_type;
-					read_index++;
-				}
-				else
-					THROW_ERROR(1); // invalid symbol
-			}
-			tmp_index = 0; // resetting this variable
-		}
+			error_number = processSymbol(input);
 
 		// Characters not matched by other ways are invalid symbols
 		else
-			THROW_ERROR(1); // invalid symbol
+			error_number = 1; // invalid symbol
 	}
 
-END:
+	if (error_number != 0)
+		THROW_ERROR(error_number);
 	// if we are still in a comment after going through the entire file
 	if(IN_COMMENT)
 		THROW_ERROR(5); // neverending comment
 	printtokens();
 	return list;
 }
+
+int processSymbol(char * input) {
+    char *curSymbol;
+    int symbol_type;
+    
+    switch (input[read_index])
+    {
+        case '=':
+        case '<':
+        case '>':
+        case ':':
+        // trying to read a two-character symbol
+        curSymbol = (char[])
+        {
+            input[read_index],
+            input[read_index + 1],
+            '\0'
+        };
+        if ((symbol_type = getSymbolType(curSymbol)) != -1)
+        {
+            list[lex_index++].type = symbol_type;
+            read_index += 2;
+            break;
+        }
+        default:
+        // trying to read a single-character symbol
+    curSymbol = (char[]){input[read_index], '\0'};
+        if ((symbol_type = getSymbolType(curSymbol)) != -1)
+        {
+            list[lex_index++].type = symbol_type;
+            read_index++;
+        }
+        else
+        return 1; // invalid symbol
+    }
+    tmp_index = 0; // resetting this variable
+	return 0;
+}
+
+
+int processNumber(char * input) {
+    // Store the number in tmp
+    while (isdigit(input[read_index]))
+    tmp[tmp_index++] = input[read_index++];
+    
+    if (tmp_index > MAX_NUMBER_LENGTH)
+    return 3; // number too long
+    
+    tmp[tmp_index++] = '\0'; // ends the string for atoi to work
+    tmp_index = 0;			 // resetting this variable
+    
+    // a number followed by a letter is an error
+    if (isalpha(input[read_index]))
+    return 2; // invalid identifier
+    
+    // add the number to the lexeme list
+    list[lex_index].type = numbersym;
+    list[lex_index].value = atoi(tmp);
+    lex_index++;
+	return 0;
+}
+
+
+int processWord(char * input) {
+    // Read in the string of letters and numbers into tmp
+    while (isalnum(input[read_index]))
+    {
+        // Fill tmp with the input characters
+        tmp[tmp_index++] = input[read_index++];
+        
+        // Throw an error if the string is longer than the max
+        // allowed length.
+        if (tmp_index > MAX_IDENT_LENGTH)
+        return 4; // invalid identifier
+    }
+    
+    tmp[tmp_index++] = '\0';
+    tmp_index = 0;	 // resetting this variable
+    int word_type;
+    
+    // Check for reserved words and identifiers
+    // Reserved Words
+    if (strcmp(tmp, "const") == 0)
+    word_type = constsym; // 29
+    else if (strcmp(tmp, "var") == 0)
+    word_type = varsym; // 30
+    else if (strcmp(tmp, "procedure") == 0)
+    word_type = procsym; // 31
+    else if (strcmp(tmp, "call") == 0)
+    word_type = callsym; // 26
+    else if (strcmp(tmp, "if") == 0)
+    word_type = ifsym; // 21
+    else if (strcmp(tmp, "then") == 0)
+    word_type = thensym; // 22
+    else if (strcmp(tmp, "else") == 0)
+    word_type = elsesym; // 23
+    else if (strcmp(tmp, "while") == 0)
+    word_type = whilesym; // 24
+    else if (strcmp(tmp, "do") == 0)
+    word_type = dosym; // 25
+    else if (strcmp(tmp, "begin") == 0)
+    word_type = beginsym; // 19
+    else if (strcmp(tmp, "end") == 0)
+    word_type = endsym; // 20
+    else if (strcmp(tmp, "read") == 0)
+    word_type = readsym; // 28
+    else if (strcmp(tmp, "write") == 0)
+    word_type = writesym; // 27
+    else if (strcmp(tmp, "odd") == 0)
+    word_type = oddsym; // 1
+    // Identifiers
+    else
+    word_type = identsym; // 32
+    
+    list[lex_index].type = word_type;
+    if (word_type == identsym)
+    strcpy(list[lex_index].name, tmp);
+    lex_index++;
+	return 0;
+}
+
 
 int isSymbol(char *s)
 {
