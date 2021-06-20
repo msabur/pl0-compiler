@@ -30,7 +30,6 @@ int processWord(char * input);
 
 /* Helper functions to check symbols */
 bool isSymbolChar(int c);
-bool isSymbol(char *s);
 int getSymbolType(char *s);
 
 /* Output functions */
@@ -207,18 +206,6 @@ int processWord(char * input) {
 		strcpy(list[lex_index].name, tmp);
 	lex_index++;
 	return 0;
-}
-
-
-bool isSymbol(char *s)
-{
-	static char *symbols[] = {"==", "<>", "<", "<=", ">", ">=", "%", "*",
-		"/", "+", "-", "(", ")", ",", ".", ";", ":="};
-	static int symbols_length = sizeof(symbols) - 1;
-	for (int i = 0; i < symbols_length; i++)
-		if (strcmp(s, symbols[i]))
-			return true;
-	return false;
 }
 
 bool isSymbolChar(int c)
