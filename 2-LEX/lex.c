@@ -10,25 +10,30 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdbool.h>
 #include "compiler.h"
 
 #define THROW_ERROR(x) do{printerror(x); return NULL;}while(0)
-
 #define MAX_IDENT_LENGTH 11
 #define MAX_NUMBER_LENGTH 5
 
 lexeme *list;
 int lex_index;       // next index to write to lexeme list
 char tmp[500] = {0}; // buffer to store current token
-int tmp_index = 0;	 // next index to read 'tmp[]' from
+int tmp_index = 0;	 // next index to write to 'tmp[]'
 int read_index = 0;  // next index to read 'input[]' from
 
-int isSymbolChar(int c);
-int isSymbol(char *s);
-int getSymbolType(char *s);
+/* Functions to process different kinds of tokens */
 int processSymbol(char * input);
 int processNumber(char * input);
 int processWord(char * input);
+
+/* Helper functions to check symbols */
+bool isSymbolChar(int c);
+bool isSymbol(char *s);
+int getSymbolType(char *s);
+
+/* Output functions */
 void printerror(int type);
 void printtokens();
 
@@ -38,8 +43,8 @@ lexeme *lexanalyzer(char *input)
 	lex_index = 0;
 	int input_len = strlen(input);
 
-	int error_number = 0; // 0 means no error, nonzero means error
-	int IN_COMMENT = 0;  // tells if we are in a comment or not
+	int error_number = 0;    // 0 means no error, 1-5 tell different errors
+	bool IN_COMMENT = false; // tells if we are in a comment or not
 
 	// Processes the entire input
 	while (error_number == 0 && read_index < input_len)
@@ -48,19 +53,21 @@ lexeme *lexanalyzer(char *input)
 		if (iscntrl(input[read_index]) || isspace(input[read_index]))
 			read_index++;
 
-		/* Handling comments */
+		/* Entering comments */
 		else if (!IN_COMMENT && input[read_index] == '/' && input[read_index + 1] == '*')
 		{
-			// entered a comment
 			IN_COMMENT = 1;
 			read_index += 2; // skip the /*
 		}
+
+		/* Leaving comments */
 		else if (IN_COMMENT && input[read_index] == '*' && input[read_index + 1] == '/')
 		{
-			// exited a comment
 			IN_COMMENT = 0;
 			read_index += 2; // skip the */
 		}
+
+		/* Do nothing if we are in a comment */
 		else if (IN_COMMENT) {
 			read_index++;
 		}
@@ -84,9 +91,10 @@ lexeme *lexanalyzer(char *input)
 
 	if (error_number != 0)
 		THROW_ERROR(error_number);
-	// if we are still in a comment after going through the entire file
+
 	if(IN_COMMENT)
 		THROW_ERROR(5); // neverending comment
+
 	printtokens();
 	return list;
 }
@@ -95,38 +103,26 @@ int processSymbol(char * input) {
 	char *curSymbol;
 	int symbol_type;
 
-	switch (input[read_index])
+	// First try to read a two-character symbol
+	curSymbol = (char[]){input[read_index], input[read_index + 1], '\0'};
+	if ((symbol_type = getSymbolType(curSymbol)) != -1)
 	{
-	case '=':
-	case '<':
-	case '>':
-	case ':':
-		// trying to read a two-character symbol
-		curSymbol = (char[])
-		{
-			input[read_index],
-			input[read_index + 1],
-			'\0'
-		};
-		if ((symbol_type = getSymbolType(curSymbol)) != -1)
-		{
-			list[lex_index++].type = symbol_type;
-			read_index += 2;
-			break;
-		}
-	default:
-		// trying to read a single-character symbol
-		curSymbol = (char[]){input[read_index], '\0'};
-		if ((symbol_type = getSymbolType(curSymbol)) != -1)
-		{
-			list[lex_index++].type = symbol_type;
-			read_index++;
-		}
-		else
-			return 1; // invalid symbol
+		list[lex_index++].type = symbol_type;
+		read_index += 2;
+		return 0;
 	}
-	tmp_index = 0; // resetting this variable
-	return 0;
+
+	// If that failed, try to read a single-character symbol
+	curSymbol = (char[]){input[read_index], '\0'};
+	if ((symbol_type = getSymbolType(curSymbol)) != -1)
+	{
+		list[lex_index++].type = symbol_type;
+		read_index++;
+		return 0;
+	}
+
+	// If that also fails, it's an invalid symbol.
+	return 1;
 }
 
 
@@ -135,6 +131,8 @@ int processNumber(char * input) {
 	while (isdigit(input[read_index]))
 		tmp[tmp_index++] = input[read_index++];
 
+	// Throw an error if the number is longer than the max
+	// allowed length.
 	if (tmp_index > MAX_NUMBER_LENGTH)
 		return 3; // number too long
 
@@ -212,25 +210,25 @@ int processWord(char * input) {
 }
 
 
-int isSymbol(char *s)
+bool isSymbol(char *s)
 {
 	static char *symbols[] = {"==", "<>", "<", "<=", ">", ">=", "%", "*",
 		"/", "+", "-", "(", ")", ",", ".", ";", ":="};
 	static int symbols_length = sizeof(symbols) - 1;
 	for (int i = 0; i < symbols_length; i++)
 		if (strcmp(s, symbols[i]))
-			return 1;
-	return 0;
+			return true;
+	return false;
 }
 
-int isSymbolChar(int c)
+bool isSymbolChar(int c)
 {
 	static char symbolCharacters[] = "=<>%*/+-(),.;:";
 	static int symbolCharacters_length = sizeof(symbolCharacters) - 1;
 	for (int i = 0; i < symbolCharacters_length; i++)
 		if (c == symbolCharacters[i])
-			return 1;
-	return 0;
+			return true;
+	return false;
 }
 
 int getSymbolType(char *s)
