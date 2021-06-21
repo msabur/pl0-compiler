@@ -20,7 +20,6 @@
 /* Global variables shared by different functions */
 lexeme *list;
 int lex_index = 0;   // next index to write to lexeme list
-char tmp[500] = {0}; // buffer to store current token
 int read_index = 0;  // next index to read 'input[]' from
 
 /* Functions to process different kinds of tokens */
@@ -42,56 +41,55 @@ lexeme *lexanalyzer(char *input)
 	list = malloc(500 * sizeof(lexeme));
 	int input_len = strlen(input);
 
-	int error_number = 0;    // 0 means no error, 1-5 tell different errors
-	bool IN_COMMENT = false; // tells if we are in a comment or not
+	int error = 0;
+	bool in_comment = false;
 
 	// Processes the entire input
-	while (error_number == 0 && read_index < input_len)
+	while (!error && read_index < input_len)
 	{
 		/* Skip invisible characters */
 		if (iscntrl(input[read_index]) || isspace(input[read_index]))
 			read_index++;
 
 		/* Entering comments */
-		else if (!IN_COMMENT && input[read_index] == '/' && input[read_index + 1] == '*')
+		else if (!in_comment && input[read_index] == '/' && input[read_index + 1] == '*')
 		{
-			IN_COMMENT = 1;
+			in_comment = 1;
 			read_index += 2; // skip the /*
 		}
 
 		/* Leaving comments */
-		else if (IN_COMMENT && input[read_index] == '*' && input[read_index + 1] == '/')
+		else if (in_comment && input[read_index] == '*' && input[read_index + 1] == '/')
 		{
-			IN_COMMENT = 0;
+			in_comment = 0;
 			read_index += 2; // skip the */
 		}
 
 		/* Do nothing if we are in a comment */
-		else if (IN_COMMENT) {
+		else if (in_comment)
 			read_index++;
-		}
 
 		/* Tokenizing a word (identifier or reserved word) */
 		else if (isalpha(input[read_index]))
-			error_number = processWord(input);
+			error = processWord(input);
 
 		/* Tokenizing a number */
 		else if (isdigit(input[read_index]))
-			error_number = processNumber(input);
+			error = processNumber(input);
 
 		/* Tokenizing a symbol */
 		else if (isSymbolChar(input[read_index]))
-			error_number = processSymbol(input);
+			error = processSymbol(input);
 
 		// Characters not matched by other ways are invalid symbols
 		else
-			error_number = 1; // invalid symbol
+			error = 1; // invalid symbol
 	}
 
-	if (error_number != 0)
-		THROW_ERROR(error_number);
+	if (error)
+		THROW_ERROR(error);
 
-	if(IN_COMMENT)
+	if(in_comment)
 		THROW_ERROR(5); // neverending comment
 
 	printtokens();
@@ -99,7 +97,7 @@ lexeme *lexanalyzer(char *input)
 }
 
 int processSymbol(char * input) {
-	tmp[2] = '\0';
+	char tmp[3] = {0};
 	int symbol_type;
 
 	// First try to read a two-character symbol
@@ -126,16 +124,17 @@ int processSymbol(char * input) {
 
 
 int processNumber(char * input) {
-	// Store the number in tmp
+	char tmp[MAX_NUMBER_LENGTH + 1] = {0};
 	int i = 0;
+	// Store the number in tmp
 	while (isdigit(input[read_index]))
+	{
 		tmp[i++] = input[read_index++];
 
-	tmp[i] = '\0';
-
-	// Throw an error if the number was too long
-	if (i > MAX_NUMBER_LENGTH)
-		return 3; // number too long
+		// Throw an error if the number was too long
+		if (i > MAX_NUMBER_LENGTH)
+			return 3; // number too long
+	}
 
 	// a number followed by a letter is an error
 	if (isalpha(input[read_index]))
@@ -148,54 +147,52 @@ int processNumber(char * input) {
 
 
 int processWord(char * input) {
-	// Read in the string of letters and numbers into tmp
+	char tmp[MAX_IDENT_LENGTH + 1] = {0};
 	int i = 0;
+	// Read in the string of letters and numbers into tmp
 	while (isalnum(input[read_index]))
+	{
 		tmp[i++] = input[read_index++];
 
-	tmp[i] = '\0';
-
-	// Throw error if the word was too long
-	if (i > MAX_IDENT_LENGTH)
-		return 4; // invalid identifier
-
-	int word_type;
+		// Throw error if the word was too long
+		if (i > MAX_IDENT_LENGTH)
+			return 4; // invalid identifier
+	}
 
 	// Check for reserved words and identifiers
 	// Reserved Words
 	if (strcmp(tmp, "const") == 0)
-		word_type = constsym; // 29
+		addLexeme(tmp, 0, constsym);
 	else if (strcmp(tmp, "var") == 0)
-		word_type = varsym; // 30
+		addLexeme(tmp, 0, varsym);
 	else if (strcmp(tmp, "procedure") == 0)
-		word_type = procsym; // 31
+		addLexeme(tmp, 0, procsym);
 	else if (strcmp(tmp, "call") == 0)
-		word_type = callsym; // 26
+		addLexeme(tmp, 0, callsym);
 	else if (strcmp(tmp, "if") == 0)
-		word_type = ifsym; // 21
+		addLexeme(tmp, 0, ifsym);
 	else if (strcmp(tmp, "then") == 0)
-		word_type = thensym; // 22
+		addLexeme(tmp, 0, thensym);
 	else if (strcmp(tmp, "else") == 0)
-		word_type = elsesym; // 23
+		addLexeme(tmp, 0, elsesym);
 	else if (strcmp(tmp, "while") == 0)
-		word_type = whilesym; // 24
+		addLexeme(tmp, 0, whilesym);
 	else if (strcmp(tmp, "do") == 0)
-		word_type = dosym; // 25
+		addLexeme(tmp, 0, dosym);
 	else if (strcmp(tmp, "begin") == 0)
-		word_type = beginsym; // 19
+		addLexeme(tmp, 0, beginsym);
 	else if (strcmp(tmp, "end") == 0)
-		word_type = endsym; // 20
+		addLexeme(tmp, 0, endsym);
 	else if (strcmp(tmp, "read") == 0)
-		word_type = readsym; // 28
+		addLexeme(tmp, 0, readsym);
 	else if (strcmp(tmp, "write") == 0)
-		word_type = writesym; // 27
+		addLexeme(tmp, 0, writesym);
 	else if (strcmp(tmp, "odd") == 0)
-		word_type = oddsym; // 1
+		addLexeme(tmp, 0, oddsym);
 	// Identifiers
 	else
-		word_type = identsym; // 32
+		addLexeme(tmp, 0, identsym);
 
-	addLexeme(tmp, 0, word_type);
 	return 0;
 }
 
