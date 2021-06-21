@@ -17,10 +17,10 @@
 #define MAX_IDENT_LENGTH 11
 #define MAX_NUMBER_LENGTH 5
 
+/* Global variables shared by different functions */
 lexeme *list;
-int lex_index;       // next index to write to lexeme list
+int lex_index = 0;   // next index to write to lexeme list
 char tmp[500] = {0}; // buffer to store current token
-int tmp_index = 0;	 // next index to write to 'tmp[]'
 int read_index = 0;  // next index to read 'input[]' from
 
 /* Functions to process different kinds of tokens */
@@ -28,9 +28,10 @@ int processSymbol(char * input);
 int processNumber(char * input);
 int processWord(char * input);
 
-/* Helper functions to check symbols */
+/* Helper functions */
 bool isSymbolChar(int c);
 int getSymbolType(char *s);
+void addLexeme(char *name, int value, int type);
 
 /* Output functions */
 void printerror(int type);
@@ -39,7 +40,6 @@ void printtokens();
 lexeme *lexanalyzer(char *input)
 {
 	list = malloc(500 * sizeof(lexeme));
-	lex_index = 0;
 	int input_len = strlen(input);
 
 	int error_number = 0;    // 0 means no error, 1-5 tell different errors
@@ -99,23 +99,23 @@ lexeme *lexanalyzer(char *input)
 }
 
 int processSymbol(char * input) {
-	char *curSymbol;
+	tmp[2] = '\0';
 	int symbol_type;
 
 	// First try to read a two-character symbol
-	curSymbol = (char[]){input[read_index], input[read_index + 1], '\0'};
-	if ((symbol_type = getSymbolType(curSymbol)) != -1)
+	tmp[0] = input[read_index]; tmp[1] = input[read_index + 1];
+	if ((symbol_type = getSymbolType(tmp)) != -1)
 	{
-		list[lex_index++].type = symbol_type;
+		addLexeme(tmp, 0, symbol_type);
 		read_index += 2;
 		return 0;
 	}
 
 	// If that failed, try to read a single-character symbol
-	curSymbol = (char[]){input[read_index], '\0'};
-	if ((symbol_type = getSymbolType(curSymbol)) != -1)
+	tmp[1] = '\0';
+	if ((symbol_type = getSymbolType(tmp)) != -1)
 	{
-		list[lex_index++].type = symbol_type;
+		addLexeme(tmp, 0, symbol_type);
 		read_index++;
 		return 0;
 	}
@@ -127,44 +127,38 @@ int processSymbol(char * input) {
 
 int processNumber(char * input) {
 	// Store the number in tmp
+	int i = 0;
 	while (isdigit(input[read_index]))
-		tmp[tmp_index++] = input[read_index++];
+		tmp[i++] = input[read_index++];
 
-	// Throw an error if the number is longer than the max
-	// allowed length.
-	if (tmp_index > MAX_NUMBER_LENGTH)
+	tmp[i] = '\0';
+
+	// Throw an error if the number was too long
+	if (i > MAX_NUMBER_LENGTH)
 		return 3; // number too long
-
-	tmp[tmp_index++] = '\0'; // ends the string for atoi to work
-	tmp_index = 0;			 // resetting this variable
 
 	// a number followed by a letter is an error
 	if (isalpha(input[read_index]))
 		return 2; // invalid identifier
 
 	// add the number to the lexeme list
-	list[lex_index].type = numbersym;
-	list[lex_index].value = atoi(tmp);
-	lex_index++;
+	addLexeme("", atoi(tmp), numbersym);
 	return 0;
 }
 
 
 int processWord(char * input) {
 	// Read in the string of letters and numbers into tmp
+	int i = 0;
 	while (isalnum(input[read_index]))
-	{
-		// Fill tmp with the input characters
-		tmp[tmp_index++] = input[read_index++];
+		tmp[i++] = input[read_index++];
 
-		// Throw an error if the string is longer than the max
-		// allowed length.
-		if (tmp_index > MAX_IDENT_LENGTH)
-			return 4; // invalid identifier
-	}
+	tmp[i] = '\0';
 
-	tmp[tmp_index++] = '\0';
-	tmp_index = 0;	 // resetting this variable
+	// Throw error if the word was too long
+	if (i > MAX_IDENT_LENGTH)
+		return 4; // invalid identifier
+
 	int word_type;
 
 	// Check for reserved words and identifiers
@@ -201,18 +195,14 @@ int processWord(char * input) {
 	else
 		word_type = identsym; // 32
 
-	list[lex_index].type = word_type;
-	if (word_type == identsym)
-		strcpy(list[lex_index].name, tmp);
-	lex_index++;
+	addLexeme(tmp, 0, word_type);
 	return 0;
 }
 
 bool isSymbolChar(int c)
 {
 	static char symbolCharacters[] = "=<>%*/+-(),.;:";
-	static int symbolCharacters_length = sizeof(symbolCharacters) - 1;
-	for (int i = 0; i < symbolCharacters_length; i++)
+	for (int i = 0; symbolCharacters[i] != '\0'; i++)
 		if (c == symbolCharacters[i])
 			return true;
 	return false;
@@ -256,6 +246,13 @@ int getSymbolType(char *s)
 		return becomessym;
 	else
 		return -1;
+}
+
+void addLexeme(char *name, int value, int type) {
+	strcpy(list[lex_index].name, name);
+	list[lex_index].type = type;
+	list[lex_index].value = value;
+	lex_index++;
 }
 
 void printtokens()
