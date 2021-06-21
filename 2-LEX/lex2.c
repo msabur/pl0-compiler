@@ -74,6 +74,9 @@ int is_symbol(char input_char)
 /* Process the comment */
 int comment_processor(char *input)
 {
+	// Skip the "/*"
+	input_index += 2;
+
 	// Checks to see if the comment ends.
 	if (input[input_index] == '*' && input[input_index + 1] == '/')
 	{
