@@ -9,8 +9,10 @@ fi
 
 echo "Compiles"
 
+cd tests
+
 echo -n "Testing Tokens : "
-./a.out lex_example1.txt > output.txt
+.././a.out lex_example1.txt > output.txt
 executed=$?
 if [[ $executed !=  0 ]]; then
 	echo ":'("
@@ -30,7 +32,7 @@ fi
 echo -n "Testing Errors : "
 
 echo -n "lex_example2.txt : "
-./a.out lex_example2.txt > output.txt
+.././a.out lex_example2.txt > output.txt
 executed=$?
 if [[ $executed !=  0 ]]; then
 	echo ":'("
