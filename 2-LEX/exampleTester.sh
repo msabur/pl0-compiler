@@ -21,19 +21,11 @@ for f in *.in
 do
 	base="${f%.*}" # the filename without the extension at the end
 	echo -n "Testing $f : "
-	.././a.out $f > output.txt
-	executed=$?
-	if [[ $executed !=  0 ]]; then
+	.././a.out $f | diff -w -B "$base.cmp" - &> /dev/null
+	correct=$?
+	if [[ $correct != 0 ]]; then
 		echo "fail"
-		exit 1
 	else
-		.././a.out $f | diff -w -B "$base.cmp" - &> /dev/null
-		correct=$?
-		if [[ $correct != 0 ]]; then
-			echo "fail"
-			exit 1
-		else
-			echo "pass"
-		fi
+		echo "pass"
 	fi
 done
