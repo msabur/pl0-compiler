@@ -1,6 +1,9 @@
 #!/bin/bash
 
-make
+if [ $# -eq 0 ]; then gcc lex.c driver.c
+else
+	gcc $1 driver.c
+fi
 compiled=$?
 if [[ $compiled != 0 ]]; then
 	echo "does not compile"
