@@ -39,7 +39,7 @@ void printtokens();
 int is_symbol(char input_char);
 
 // Methods to process everything
-int comment_processor(char *input);
+int comment_processor(char *input, int count);
 void invisible_char_processor(char *input);
 void word_processor(char *input);
 void number_processor(char *input);
@@ -72,10 +72,12 @@ int is_symbol(char input_char)
 }
 
 /* Process the comment */
-int comment_processor(char *input)
+int comment_processor(char *input, int first_loop)
 {
-	// Skip the "/*"
-	input_index += 2;
+	// Only runs during the first loop
+	// Skips the "/*"
+	if (first_loop == 1)
+		input_index += 2;
 
 	// Checks to see if the comment ends.
 	if (input[input_index] == '*' && input[input_index + 1] == '/')
@@ -93,9 +95,9 @@ int comment_processor(char *input)
 			// If we are, then this comment never ended, so return 1
 			return 1;
 
-		// Increment the input_index and recursively call itself
+		// Increment the input_index, then recursively call itself
 		input_index++;
-		comment_processor(input);
+		comment_processor(input, 0);
 	}
 }
 
@@ -298,8 +300,8 @@ void symbol_processor(char *input)
 		switch (input[input_index + 1])
 		{
 		case '*':
-			// Call the comment_processor
-			comment_error = comment_processor(input);
+			// Call the comment processor
+			comment_error = comment_processor(input, 1);
 
 			// Set the symbol to -2 so as not to
 			// throw an error
@@ -421,7 +423,7 @@ lexeme *lexanalyzer(char *input)
 	{
 		// Check for comments
 		if (input[input_index] == '/' && input[input_index + 1] == '*')
-			comment_error = comment_processor(input);
+			comment_error = comment_processor(input, 1);
 
 		// Check for invisible characters
 		else if (iscntrl(input[input_index]) || isspace(input[input_index]))
