@@ -69,15 +69,15 @@ lexeme *lexanalyzer(char *input)
 		else if (in_comment)
 			read_index++;
 
-		/* Tokenizing a word (identifier or reserved word) */
+		/* Processing a word (identifier or reserved word) */
 		else if (isalpha(input[read_index]))
 			error = processWord(input);
 
-		/* Tokenizing a number */
+		/* Processing a number */
 		else if (isdigit(input[read_index]))
 			error = processNumber(input);
 
-		/* Tokenizing a symbol */
+		/* Processing a symbol */
 		else if (isSymbolChar(input[read_index]))
 			error = processSymbol(input);
 
@@ -97,29 +97,23 @@ lexeme *lexanalyzer(char *input)
 }
 
 int processSymbol(char * input) {
-	char tmp[3] = {0};
+	char sym[] = {input[read_index], input[read_index + 1], '\0'};
 	int symbol_type;
 
-	// First try to read a two-character symbol
-	tmp[0] = input[read_index]; tmp[1] = input[read_index + 1];
-	if ((symbol_type = getSymbolType(tmp)) != -1)
+	// Look for valid symbols of length 2 or 1, storing the first found
+	for (int n = 2; n != 0; n--)
 	{
-		addLexeme(tmp, 0, symbol_type);
-		read_index += 2;
-		return 0;
+		sym[n] = '\0';
+		if ((symbol_type = getSymbolType(sym)) != -1)
+		{
+			addLexeme(sym, 0, symbol_type);
+			read_index += n;
+			return 0;
+		}
 	}
 
-	// If that failed, try to read a single-character symbol
-	tmp[1] = '\0';
-	if ((symbol_type = getSymbolType(tmp)) != -1)
-	{
-		addLexeme(tmp, 0, symbol_type);
-		read_index++;
-		return 0;
-	}
-
-	// If that also fails, it's an invalid symbol.
-	return 1;
+	// If we didn't find any valid symbol, it must be invalid
+	return 1; // invalid symbol
 }
 
 
@@ -140,7 +134,6 @@ int processNumber(char * input) {
 	if (isalpha(input[read_index]))
 		return 2; // invalid identifier
 
-	// add the number to the lexeme list
 	addLexeme("", atoi(tmp), numbersym);
 	return 0;
 }
