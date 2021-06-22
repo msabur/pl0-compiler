@@ -1,7 +1,10 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then gcc lex.c driver.c
+if [ $# -eq 0 ]; then
+	echo "Compiling lex.c"
+	gcc lex.c driver.c
 else
+	echo "Compiling $1"
 	gcc $1 driver.c
 fi
 compiled=$?
@@ -14,37 +17,23 @@ echo "Compiles"
 
 cd tests
 
-echo -n "Testing Tokens : "
-.././a.out lex_example1.txt > output.txt
-executed=$?
-if [[ $executed !=  0 ]]; then
-	echo ":'("
-	exit 1
-else
-	diff -w -B output.txt lexout1.txt &> /dev/null
-	correct=$?
-	if [[ $correct != 0 ]]; then
-		echo ":'("
+for f in *.in
+do
+	base="${f%.*}" # the filename without the extension at the end
+	echo -n "Testing $f : "
+	.././a.out $f > output.txt
+	executed=$?
+	if [[ $executed !=  0 ]]; then
+		echo "fail"
 		exit 1
 	else
-		echo "───==≡≡ΣΣ((( つºل͜º)つ"
+		.././a.out $f | diff -w -B "$base.cmp" - &> /dev/null
+		correct=$?
+		if [[ $correct != 0 ]]; then
+			echo "fail"
+			exit 1
+		else
+			echo "pass"
+		fi
 	fi
-fi
-
-
-echo -n "Testing Errors : "
-
-echo -n "lex_example2.txt : "
-.././a.out lex_example2.txt > output.txt
-executed=$?
-if [[ $executed !=  0 ]]; then
-	echo ":'("
-else
-	diff -w -B output.txt lexout2.txt &> /dev/null
-	correct=$?
-	if [[ $correct != 0 ]]; then
-		echo ":'("
-	else
-		echo "───==≡≡ΣΣ((( つºل͜º)つ"
-	fi
-fi
+done
