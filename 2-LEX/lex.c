@@ -39,13 +39,12 @@ void printtokens();
 lexeme *lexanalyzer(char *input)
 {
 	list = malloc(500 * sizeof(lexeme));
-	int input_len = strlen(input);
 
 	int error = 0;
 	bool in_comment = false;
 
 	// Processes the entire input
-	while (!error && read_index < input_len)
+	while (!error && input[read_index] != '\0')
 	{
 		/* Skip invisible characters */
 		if (iscntrl(input[read_index]) || isspace(input[read_index]))
@@ -84,7 +83,7 @@ lexeme *lexanalyzer(char *input)
 		// Characters not matched by other ways are invalid symbols
 		else
 			error = 1; // invalid symbol
-	}
+	} // while
 
 	if (error)
 		THROW_ERROR(error);
@@ -98,11 +97,14 @@ lexeme *lexanalyzer(char *input)
 
 int processSymbol(char * input) {
 	char sym[] = {input[read_index], input[read_index + 1], '\0'};
-	int symbol_type;
 
-	// Look for valid symbols of length 2 or 1, storing the first found
-	for (int n = 2; n != 0; n--)
+	/* Look for valid symbols of length 2 or 1, storing the first found.
+	 * This is for separating sequences like ==(
+	 * We first store == of length 2, then ( of length 1.
+	 */
+	for (int n = (sym[1] == '\0') ? 1 : 2; n != 0; n--)
 	{
+		int symbol_type;
 		sym[n] = '\0';
 		if ((symbol_type = getSymbolType(sym)) != -1)
 		{
@@ -116,41 +118,33 @@ int processSymbol(char * input) {
 	return 1; // invalid symbol
 }
 
-
 int processNumber(char * input) {
-	char tmp[MAX_NUMBER_LENGTH + 1] = {0};
-	int i = 0;
-	// Store the number in tmp
-	while (isdigit(input[read_index]))
-	{
-		tmp[i++] = input[read_index++];
+	// Reading the number into a buffer
+	char tmp[501];
+	int numberLength;
+	sscanf(&input[read_index], "%500[0-9]%n", tmp, &numberLength);
+	read_index += numberLength;
 
-		// Throw an error if the number was too long
-		if (i > MAX_NUMBER_LENGTH)
-			return 3; // number too long
-	}
-
-	// a number followed by a letter is an error
-	if (isalpha(input[read_index]))
+	// Validation
+	if (numberLength > MAX_NUMBER_LENGTH)
+		return 3; // number too long
+	if(isalpha(input[read_index]))
 		return 2; // invalid identifier
 
 	addLexeme("", atoi(tmp), numbersym);
 	return 0;
 }
 
-
 int processWord(char * input) {
-	char tmp[MAX_IDENT_LENGTH + 1] = {0};
-	int i = 0;
-	// Read in the string of letters and numbers into tmp
-	while (isalnum(input[read_index]))
-	{
-		tmp[i++] = input[read_index++];
+	// Reading the word into a buffer
+	char tmp[501];
+	int wordLength;
+	sscanf(&input[read_index], "%500[a-zA-Z0-9]%n", tmp, &wordLength);
+	read_index += wordLength;
 
-		// Throw error if the word was too long
-		if (i > MAX_IDENT_LENGTH)
-			return 4; // invalid identifier
-	}
+	// Validation
+	if (wordLength > MAX_IDENT_LENGTH)
+		return 4; // identifier too long
 
 	// Check for reserved words and identifiers
 	// Reserved Words
