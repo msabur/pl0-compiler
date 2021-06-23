@@ -4,247 +4,456 @@
  * Homework #2 (Lexical Analyzer)
  * Authors: Maahee, Grant Allan
  * Due: 6/25/2021
- */
+*/
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <stdbool.h>
 #include "compiler.h"
 
-#define THROW_ERROR(x) do{printerror(x); return NULL;}while(0)
 #define MAX_IDENT_LENGTH 11
 #define MAX_NUMBER_LENGTH 5
 
-/* Global variables shared by different functions */
 lexeme *list;
-int lex_index = 0;   // next index to write to lexeme list
-int read_index = 0;  // next index to read 'input[]' from
+int lex_index;
 
-/* Functions to process different kinds of tokens */
-int processSymbol(char * input);
-int processNumber(char * input);
-int processWord(char * input);
+// To keep track of our position in the input
+int input_index = 0;
 
-/* Helper functions */
-bool isSymbolChar(int c);
-int getSymbolType(char *s);
-int getWordType(char *s);
-void addLexeme(char *name, int value, int type);
+// Set up tmp
+char tmp[500];	   // tmp array
+int tmp_index = 0; // tmp index
 
-/* Output functions */
+// 0 for if there's no error found in the comments,
+// 1 for if there is.
+int comment_error = 0;
+
+// error_checker to assist in the main while loop
+int error_checker = 0;
+
 void printerror(int type);
 void printtokens();
 
-lexeme *lexanalyzer(char *input)
+// Method to see if an input character is a symbol
+int is_symbol(char input_char);
+
+// Methods to process everything
+int comment_processor(char *input, int count);
+void invisible_char_processor(char *input);
+void word_processor(char *input);
+void number_processor(char *input);
+void symbol_processor(char *input);
+void error_processor(int error_number);
+
+/* Check to see if the input is a symbol */
+int is_symbol(char input_char)
 {
-	list = malloc(500 * sizeof(lexeme));
-
-	int error = 0;
-	bool in_comment = false;
-
-	// Processes the entire input
-	while (!error && input[read_index] != '\0')
+	switch (input_char)
 	{
-		/* Skip invisible characters */
-		if (iscntrl(input[read_index]) || isspace(input[read_index]))
-			read_index++;
-
-		/* Entering comments */
-		else if (!in_comment && input[read_index] == '/' && input[read_index + 1] == '*')
-		{
-			in_comment = true;
-			read_index += 2; // skip the /*
-		}
-
-		/* Leaving comments */
-		else if (in_comment && input[read_index] == '*' && input[read_index + 1] == '/')
-		{
-			in_comment = false;
-			read_index += 2; // skip the */
-		}
-
-		/* Do nothing if we are in a comment */
-		else if (in_comment)
-			read_index++;
-
-		/* Processing a word (identifier or reserved word) */
-		else if (isalpha(input[read_index]))
-			error = processWord(input);
-
-		/* Processing a number */
-		else if (isdigit(input[read_index]))
-			error = processNumber(input);
-
-		/* Processing a symbol */
-		else if (isSymbolChar(input[read_index]))
-			error = processSymbol(input);
-
-		// Characters not matched by other ways are invalid symbols
-		else
-			error = 1; // invalid symbol
-	} // while
-
-	if (error)
-		THROW_ERROR(error);
-
-	if(in_comment)
-		THROW_ERROR(5); // neverending comment
-
-	printtokens();
-	return list;
+	case '=':
+	case '<':
+	case '>':
+	case '%':
+	case '*':
+	case '/':
+	case '+':
+	case '-':
+	case '(':
+	case ')':
+	case ',':
+	case '.':
+	case ';':
+	case ':':
+		return 1;
+	default:
+		return 0;
+	}
 }
 
-int processSymbol(char * input) {
-	char sym[] = {input[read_index], input[read_index + 1], '\0'};
+/* Process the comment */
+int comment_processor(char *input, int first_loop)
+{
+	// Only runs during the first loop
+	// Skips the "/*"
+	if (first_loop == 1)
+		input_index += 2;
 
-	/* Look for valid symbols of length 2 or 1, storing the first found.
-	 * This is for a symbol like <= where we want to read both characters
-	 * as a single symbol, instead of separately as < and =
-	 */
-	for (int n = (sym[1] == '\0') ? 1 : 2; n != 0; n--)
+	// Checks to see if the comment ends.
+	if (input[input_index] == '*' && input[input_index + 1] == '/')
 	{
-		int symbol_type;
-		sym[n] = '\0';
-		if ((symbol_type = getSymbolType(sym)) != -1)
-		{
-			addLexeme(sym, 0, symbol_type);
-			read_index += n;
-			return 0;
-		}
+		// If it does end, skip "*/"
+		input_index += 2;
+
+		// Return 0 since the comment ended without causing an error
+		return 0;
+	}
+	else
+	{
+		// Check to see if we're past the input.
+		if (input_index >= strlen(input))
+			// If we are, then this comment never ended, so return 1
+			return 1;
+
+		// Increment the input_index, then recursively call itself
+		input_index++;
+		comment_processor(input, 0);
+	}
+}
+
+/* Process the invisible characters */
+void invisible_char_processor(char *input)
+{
+	// If we're on an invisible character, recursive call
+	// while skipping that input_index space.
+	if (iscntrl(input[input_index]) || isspace(input[input_index]))
+	{
+		input_index++;
+		invisible_char_processor(input);
+	}
+}
+
+/* Process the words */
+void word_processor(char *input)
+{
+	// Read in the string of letters and numbers into tmp
+	while (isalnum(input[input_index]))
+	{
+		// Add the input character to tmp, then increment
+		// both indexes
+		tmp[tmp_index++] = input[input_index++];
+
+		// Break out of the loop if it reaches the end
+		// of the input
+		if (input_index >= strlen(input))
+			break;
+
+		// Throw an error if the string is longer than the max
+		// allowed length.
+		if (tmp_index > MAX_IDENT_LENGTH)
+			error_processor(4); // Excessive Identifier Length
 	}
 
-	// If we didn't find any valid symbol, it must be invalid
-	return 1; // invalid symbol
-}
+	// End the string
+	tmp[tmp_index] = '\0';
 
-int processNumber(char * input) {
-	// Reading the number into a buffer
-	char tmp[501];
-	int numberLength;
-	sscanf(&input[read_index], "%500[0-9]%n", tmp, &numberLength);
+	// Reset tmp_index
+	tmp_index = 0;
 
-	read_index += numberLength;
-
-	// if the number is too long
-	if (numberLength > MAX_NUMBER_LENGTH)
-		return 3; // number too long
-
-	// if the number is followed by letter
-	if(isalpha(input[read_index])) 
-		return 2; // invalid identifier
-
-	addLexeme("", atoi(tmp), numbersym);
-	return 0;
-}
-
-int processWord(char * input) {
-	// Reading the word into a buffer
-	char tmp[501];
-	int wordLength;
-	sscanf(&input[read_index], "%500[a-zA-Z0-9]%n", tmp, &wordLength);
-
-	read_index += wordLength;
-
-	// if the word is too long
-	if (wordLength > MAX_IDENT_LENGTH)
-		return 4; // identifier too long
-
-	addLexeme(tmp, 0, getWordType(tmp));
-	return 0;
-}
-
-bool isSymbolChar(int c)
-{
-	static char symbolCharacters[] = "=<>%*/+-(),.;:";
-	for (int i = 0; symbolCharacters[i] != '\0'; i++)
-		if (c == symbolCharacters[i])
-			return true;
-	return false;
-}
-
-int getSymbolType(char *s)
-{
-	if (strcmp(s, "==") == 0)
-		return eqlsym;
-	else if (strcmp(s, "<>") == 0)
-		return neqsym;
-	else if (strcmp(s, "<") == 0)
-		return lessym;
-	else if (strcmp(s, "<=") == 0)
-		return leqsym;
-	else if (strcmp(s, ">") == 0)
-		return gtrsym;
-	else if (strcmp(s, ">=") == 0)
-		return geqsym;
-	else if (strcmp(s, "%") == 0)
-		return modsym;
-	else if (strcmp(s, "*") == 0)
-		return multsym;
-	else if (strcmp(s, "/") == 0)
-		return slashsym;
-	else if (strcmp(s, "+") == 0)
-		return plussym;
-	else if (strcmp(s, "-") == 0)
-		return minussym;
-	else if (strcmp(s, "(") == 0)
-		return lparentsym;
-	else if (strcmp(s, ")") == 0)
-		return rparentsym;
-	else if (strcmp(s, ",") == 0)
-		return commasym;
-	else if (strcmp(s, ".") == 0)
-		return periodsym;
-	else if (strcmp(s, ";") == 0)
-		return semicolonsym;
-	else if (strcmp(s, ":=") == 0)
-		return becomessym;
+	// Check for reserved words and identifiers
+	// Reserved Words
+	if (strcmp(tmp, "const") == 0)
+		list[lex_index].type = constsym; // 29
+	else if (strcmp(tmp, "var") == 0)
+		list[lex_index].type = varsym; // 30
+	else if (strcmp(tmp, "procedure") == 0)
+		list[lex_index].type = procsym; // 31
+	else if (strcmp(tmp, "call") == 0)
+		list[lex_index].type = callsym; // 26
+	else if (strcmp(tmp, "if") == 0)
+		list[lex_index].type = ifsym; // 21
+	else if (strcmp(tmp, "then") == 0)
+		list[lex_index].type = thensym; // 22
+	else if (strcmp(tmp, "else") == 0)
+		list[lex_index].type = elsesym; // 23
+	else if (strcmp(tmp, "while") == 0)
+		list[lex_index].type = whilesym; // 24
+	else if (strcmp(tmp, "do") == 0)
+		list[lex_index].type = dosym; // 25
+	else if (strcmp(tmp, "begin") == 0)
+		list[lex_index].type = beginsym; // 19
+	else if (strcmp(tmp, "end") == 0)
+		list[lex_index].type = endsym; // 20
+	else if (strcmp(tmp, "read") == 0)
+		list[lex_index].type = readsym; // 28
+	else if (strcmp(tmp, "write") == 0)
+		list[lex_index].type = writesym; // 27
+	else if (strcmp(tmp, "odd") == 0)
+		list[lex_index].type = oddsym; // 1
+	// Identifiers
 	else
-		return -1;
-}
+	{
+		list[lex_index].type = identsym; // 32
 
-int getWordType(char *s)
-{
-	if (strcmp(s, "const") == 0)
-		return constsym;
-	else if (strcmp(s, "var") == 0)
-		return varsym;
-	else if (strcmp(s, "procedure") == 0)
-		return procsym;
-	else if (strcmp(s, "call") == 0)
-		return callsym;
-	else if (strcmp(s, "if") == 0)
-		return ifsym;
-	else if (strcmp(s, "then") == 0)
-		return thensym;
-	else if (strcmp(s, "else") == 0)
-		return elsesym;
-	else if (strcmp(s, "while") == 0)
-		return whilesym;
-	else if (strcmp(s, "do") == 0)
-		return dosym;
-	else if (strcmp(s, "begin") == 0)
-		return beginsym;
-	else if (strcmp(s, "end") == 0)
-		return endsym;
-	else if (strcmp(s, "read") == 0)
-		return readsym;
-	else if (strcmp(s, "write") == 0)
-		return writesym;
-	else if (strcmp(s, "odd") == 0)
-		return oddsym;
-	else
-		return identsym;
-}
+		// As this is an indentifier, we copy the
+		// identifier onto the list as well.
+		strcpy(list[lex_index].name, tmp);
+	}
 
-void addLexeme(char *name, int value, int type) {
-	strcpy(list[lex_index].name, name);
-	list[lex_index].type = type;
-	list[lex_index].value = value;
+	// Increment the list
 	lex_index++;
 }
 
+/* Process the numbers */
+void number_processor(char *input)
+{
+	// As long as the input continues to be numbers...
+	while (isdigit(input[input_index]))
+		tmp[tmp_index++] = input[input_index++];
+
+	if (tmp_index > MAX_NUMBER_LENGTH)
+		error_processor(3); // Excessive Number Length
+
+	// End the string
+	tmp[tmp_index] = '\0';
+
+	// Reset tmp_index
+	tmp_index = 0;
+
+	// Checks to see if the next character is a letter
+	if (isalpha(input[input_index]))
+		error_processor(2); // Invalid Identifier
+
+	// Add the number symbol to the list along with the actual
+	// string of numbers, then increment the list index.
+	list[lex_index].type = numbersym;
+	list[lex_index].value = atoi(tmp);
+	lex_index++;
+}
+
+/* Process the symbols */
+void symbol_processor(char *input)
+{
+	// Initialize symbol_type operator
+	int symbol_type = -1;
+
+	// A series of switch statements that ape a trie
+	switch (input[input_index])
+	{
+	case '=':
+		switch (input[input_index + 1])
+		{
+		case '=':
+			// Set the symbol for "=="
+			symbol_type = eqlsym;
+
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case "=="
+		}
+		break; // Break outer case '='
+
+	case '<':
+		switch (input[input_index + 1])
+		{
+		case '>':
+			// Set the symbol for "<>"
+			symbol_type = neqsym;
+
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case "<>"
+
+		case '=':
+			// Set the symbol for "<="
+			symbol_type = leqsym;
+
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case "<="
+
+		default:
+			// Set the symbol for "<"
+			symbol_type = lessym;
+
+			// Move forward one input_index space
+			input_index++;
+			break; // Break default case "<"
+		}
+		break; // Break outer case '<'
+
+	case '>':
+		switch (input[input_index + 1])
+		{
+		case '=':
+			// Set the symbol for ">="
+			symbol_type = geqsym;
+
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case ">="
+
+		default:
+			// Set the symbol for ">"
+			symbol_type = gtrsym;
+
+			// Move forward one index space
+			input_index++;
+			break; // Break default case '>'
+		}
+		break; // Break outer case '>'
+
+	case ':':
+		switch (input[input_index + 1])
+		{
+		case '=':
+			// Set the symbol for ":="
+			symbol_type = becomessym;
+
+			// Move forward two input_index spaces
+			input_index += 2;
+			break; // Break case ":="
+		}
+		break; // Break outer case ':'
+
+	case '/':
+		switch (input[input_index + 1])
+		{
+		case '*':
+			// Call the comment processor
+			comment_error = comment_processor(input, 1);
+
+			// Set the symbol to -2 so as not to
+			// throw an error
+			symbol_type = -2;
+			break; // Break case "/*"
+
+		default:
+			// Set the symbol for "/"
+			symbol_type = slashsym;
+
+			// Move forward one index space
+			input_index++;
+			break; // Break default case "/"
+		}
+		break; // Break outer case '/'
+
+	case '%':
+		// Set the symbol for "%"
+		symbol_type = modsym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '%'
+
+	case '*':
+		// Set the symbol for "*"
+		symbol_type = multsym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '*'
+
+	case '+':
+		// Set the symbol for "+"
+		symbol_type = plussym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '+'
+
+	case '-':
+		// Set the symbol for "-"
+		symbol_type = minussym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '-'
+
+	case '(':
+		// Set the symbol for "("
+		symbol_type = lparentsym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case '('
+
+	case ')':
+		// Set the symbol for ")"
+		symbol_type = rparentsym;
+
+		// Move forward one input_index space
+		input_index++;
+		break; // Break outer case ')'
+
+	case ',':
+		// Set the symbol for ","
+		symbol_type = commasym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case ','
+
+	case '.':
+		// Set the symbol for "."
+		symbol_type = periodsym;
+
+		// Move forward one input_index space
+		input_index++;
+		break; // Break outer case '.'
+
+	case ';':
+		// Set the symbol for ";"
+		symbol_type = semicolonsym;
+
+		// Move forward one index space
+		input_index++;
+		break; // Break outer case ';'
+	}		   // Close outer switch statement
+
+	// Check to see if an error should be thrown
+	if (symbol_type == -1)
+		error_processor(1); // Invalid Symbol
+
+	// Append symbol to the list
+	list[lex_index].type = symbol_type;
+	lex_index++;
+}
+
+/* Process errors */
+void error_processor(int error_number)
+{
+	// Call printerror
+	printerror(error_number);
+
+	// Set error_checker to true
+	error_checker = 1;
+}
+
+/* Fill the lexeme list */
+lexeme *lexanalyzer(char *input)
+{
+	// Allocate space for the list of lexemes and initialize
+	// the list index at 0
+	list = malloc(500 * sizeof(lexeme));
+	lex_index = 0;
+
+	// While there's still input to be processed and no errors
+	while (input_index < strlen(input) && error_checker == 0)
+	{
+		// Check for comments
+		if (input[input_index] == '/' && input[input_index + 1] == '*')
+			comment_error = comment_processor(input, 1);
+
+		// Check for invisible characters
+		else if (iscntrl(input[input_index]) || isspace(input[input_index]))
+			invisible_char_processor(input);
+
+		// Check for words
+		else if (isalpha(input[input_index]))
+			word_processor(input);
+
+		// Check for numbers
+		else if (isdigit(input[input_index]))
+			number_processor(input);
+
+		// Check for symbols
+		else if (is_symbol(input[input_index]))
+			symbol_processor(input);
+	}
+
+	// Check to see if there was a comment error
+	if (comment_error == 1)
+		error_processor(5); // Neverending Comment
+
+	// Print out the table, but only if there's no errors.
+	if (error_checker == 0)
+		printtokens();
+
+	return list;
+}
+
+/* Print out the table using the list */
 void printtokens()
 {
 	int i;
@@ -371,6 +580,7 @@ void printtokens()
 	list[lex_index++].type = -1;
 }
 
+/* Print out what error was thrown */
 void printerror(int type)
 {
 	if (type == 1)
@@ -386,6 +596,5 @@ void printerror(int type)
 	else
 		printf("Implementation Error: Unrecognized Error Type\n");
 
-	free(list);
 	return;
 }
