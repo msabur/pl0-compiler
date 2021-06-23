@@ -30,6 +30,7 @@ int processWord(char * input);
 /* Helper functions */
 bool isSymbolChar(int c);
 int getSymbolType(char *s);
+int getWordType(char *s);
 void addLexeme(char *name, int value, int type);
 
 /* Output functions */
@@ -146,40 +147,7 @@ int processWord(char * input) {
 	if (wordLength > MAX_IDENT_LENGTH)
 		return 4; // identifier too long
 
-	// Check for reserved words and identifiers
-	// Reserved Words
-	if (strcmp(tmp, "const") == 0)
-		addLexeme(tmp, 0, constsym);
-	else if (strcmp(tmp, "var") == 0)
-		addLexeme(tmp, 0, varsym);
-	else if (strcmp(tmp, "procedure") == 0)
-		addLexeme(tmp, 0, procsym);
-	else if (strcmp(tmp, "call") == 0)
-		addLexeme(tmp, 0, callsym);
-	else if (strcmp(tmp, "if") == 0)
-		addLexeme(tmp, 0, ifsym);
-	else if (strcmp(tmp, "then") == 0)
-		addLexeme(tmp, 0, thensym);
-	else if (strcmp(tmp, "else") == 0)
-		addLexeme(tmp, 0, elsesym);
-	else if (strcmp(tmp, "while") == 0)
-		addLexeme(tmp, 0, whilesym);
-	else if (strcmp(tmp, "do") == 0)
-		addLexeme(tmp, 0, dosym);
-	else if (strcmp(tmp, "begin") == 0)
-		addLexeme(tmp, 0, beginsym);
-	else if (strcmp(tmp, "end") == 0)
-		addLexeme(tmp, 0, endsym);
-	else if (strcmp(tmp, "read") == 0)
-		addLexeme(tmp, 0, readsym);
-	else if (strcmp(tmp, "write") == 0)
-		addLexeme(tmp, 0, writesym);
-	else if (strcmp(tmp, "odd") == 0)
-		addLexeme(tmp, 0, oddsym);
-	// Identifiers
-	else
-		addLexeme(tmp, 0, identsym);
-
+	addLexeme(tmp, 0, getWordType(tmp));
 	return 0;
 }
 
@@ -230,6 +198,40 @@ int getSymbolType(char *s)
 		return becomessym;
 	else
 		return -1;
+}
+
+int getWordType(char *s)
+{
+	if (strcmp(s, "const") == 0)
+		return constsym;
+	else if (strcmp(s, "var") == 0)
+		return varsym;
+	else if (strcmp(s, "procedure") == 0)
+		return procsym;
+	else if (strcmp(s, "call") == 0)
+		return callsym;
+	else if (strcmp(s, "if") == 0)
+		return ifsym;
+	else if (strcmp(s, "then") == 0)
+		return thensym;
+	else if (strcmp(s, "else") == 0)
+		return elsesym;
+	else if (strcmp(s, "while") == 0)
+		return whilesym;
+	else if (strcmp(s, "do") == 0)
+		return dosym;
+	else if (strcmp(s, "begin") == 0)
+		return beginsym;
+	else if (strcmp(s, "end") == 0)
+		return endsym;
+	else if (strcmp(s, "read") == 0)
+		return readsym;
+	else if (strcmp(s, "write") == 0)
+		return writesym;
+	else if (strcmp(s, "odd") == 0)
+		return oddsym;
+	else
+		return identsym;
 }
 
 void addLexeme(char *name, int value, int type) {
