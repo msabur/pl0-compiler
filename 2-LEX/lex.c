@@ -450,7 +450,9 @@ lexeme *lexanalyzer(char *input)
 	if (error_checker == 0)
 		printtokens();
 
-	return list;
+	// Return NULL if there was an error, otherwise return the list
+	// This prevents double-freeing the list.
+	return error_checker ? NULL : list;
 }
 
 /* Print out the table using the list */
@@ -596,5 +598,6 @@ void printerror(int type)
 	else
 		printf("Implementation Error: Unrecognized Error Type\n");
 
+	free(list);
 	return;
 }
