@@ -54,14 +54,14 @@ lexeme *lexanalyzer(char *input)
 		/* Entering comments */
 		else if (!in_comment && input[read_index] == '/' && input[read_index + 1] == '*')
 		{
-			in_comment = 1;
+			in_comment = true;
 			read_index += 2; // skip the /*
 		}
 
 		/* Leaving comments */
 		else if (in_comment && input[read_index] == '*' && input[read_index + 1] == '/')
 		{
-			in_comment = 0;
+			in_comment = false;
 			read_index += 2; // skip the */
 		}
 
@@ -100,8 +100,8 @@ int processSymbol(char * input) {
 	char sym[] = {input[read_index], input[read_index + 1], '\0'};
 
 	/* Look for valid symbols of length 2 or 1, storing the first found.
-	 * This is for separating sequences like ==(
-	 * We first store == of length 2, then ( of length 1.
+	 * This is for a symbol like <= where we want to read both characters
+	 * as a single symbol, instead of separately as < and =
 	 */
 	for (int n = (sym[1] == '\0') ? 1 : 2; n != 0; n--)
 	{
@@ -124,12 +124,15 @@ int processNumber(char * input) {
 	char tmp[501];
 	int numberLength;
 	sscanf(&input[read_index], "%500[0-9]%n", tmp, &numberLength);
+
 	read_index += numberLength;
 
-	// Validation
+	// if the number is too long
 	if (numberLength > MAX_NUMBER_LENGTH)
 		return 3; // number too long
-	if(isalpha(input[read_index]))
+
+	// if the number is followed by letter
+	if(isalpha(input[read_index])) 
 		return 2; // invalid identifier
 
 	addLexeme("", atoi(tmp), numbersym);
@@ -141,9 +144,10 @@ int processWord(char * input) {
 	char tmp[501];
 	int wordLength;
 	sscanf(&input[read_index], "%500[a-zA-Z0-9]%n", tmp, &wordLength);
+
 	read_index += wordLength;
 
-	// Validation
+	// if the word is too long
 	if (wordLength > MAX_IDENT_LENGTH)
 		return 4; // identifier too long
 
