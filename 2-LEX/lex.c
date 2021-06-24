@@ -440,6 +440,10 @@ lexeme *lexanalyzer(char *input)
 		// Check for symbols
 		else if (is_symbol(input[input_index]))
 			symbol_processor(input);
+
+		// Unrecognized characters are invalid symbols
+		else
+			error_processor(1);
 	}
 
 	// Check to see if there was a comment error
