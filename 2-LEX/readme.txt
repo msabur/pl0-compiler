@@ -8,7 +8,7 @@ Due: 6/25/2021
 gcc driver.c lex.c
 
 # To run
-./a <path to input file>
+./a.out <path to input file>
 
 Example:
-./a input.txt
+./a.out input.txt
