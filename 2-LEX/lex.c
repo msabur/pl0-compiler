@@ -91,7 +91,7 @@ int comment_processor(char *input, int first_loop)
 	else
 	{
 		// Check to see if we're past the input.
-		if (input_index >= strlen(input))
+		if (input[input_index] == '\0')
 			// If we are, then this comment never ended, so return 1
 			return 1;
 
@@ -122,11 +122,6 @@ void word_processor(char *input)
 		// Add the input character to tmp, then increment
 		// both indexes
 		tmp[tmp_index++] = input[input_index++];
-
-		// Break out of the loop if it reaches the end
-		// of the input
-		if (input_index >= strlen(input))
-			break;
 
 		// Throw an error if the string is longer than the max
 		// allowed length.
@@ -175,7 +170,7 @@ void word_processor(char *input)
 	{
 		list[lex_index].type = identsym; // 32
 
-		// As this is an indentifier, we copy the
+		// As this is an identifier, we copy the
 		// identifier onto the list as well.
 		strcpy(list[lex_index].name, tmp);
 	}
@@ -418,8 +413,10 @@ lexeme *lexanalyzer(char *input)
 	list = malloc(500 * sizeof(lexeme));
 	lex_index = 0;
 
+	size_t input_len = strlen(input);
+
 	// While there's still input to be processed and no errors
-	while (input_index < strlen(input) && error_checker == 0)
+	while (input_index < input_len && error_checker == 0)
 	{
 		// Check for comments
 		if (input[input_index] == '/' && input[input_index + 1] == '*')
