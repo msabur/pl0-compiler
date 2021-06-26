@@ -1,15 +1,21 @@
-# to run in terminal $ make
-CC = gcc
+CC=gcc
+CFLAGS=-g -Wall
 
-# List all your .c (or .cpp or .cc) files here (source files, excluding header files)
-SRC_CODE = driver.c lex.c
+# our source files
+SRCS=lex.c driver.c
 
-#################################
+OBJS=$(SRCS:.c=.o)
 
-# default rule
+# name of generated executable
+BIN=a.out
 
-all: $(SRC_CODE)
-	$(CC) $(SRC_CODE) -lm
+.PHONY: all clean
 
+all:$(BIN)
 
+$(BIN): $(OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+clean:
+	$(RM) $(BIN) $(OBJS)
 

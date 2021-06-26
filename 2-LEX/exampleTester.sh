@@ -1,12 +1,6 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-	echo "Compiling lex.c"
-	gcc lex.c driver.c
-else
-	echo "Compiling $1"
-	gcc $1 driver.c
-fi
+make
 compiled=$?
 if [[ $compiled != 0 ]]; then
 	echo "does not compile"
