@@ -2,13 +2,13 @@
 #include <setjmp.h>
 
 /* Set up error management */
-#define catch() setjmp(error_buffer)
-#define throw(error) longjmp(error_buffer, error)
-jmp_buf error_buffer;
+int error_number;
+jmp_buf env;
+#define catch() setjmp(env)
+#define throw(error) longjmp(env, error_number = error)
 
 int main() {
-	int error_number;
-	if((error_number = catch()) == 0) {
+	if(catch() == 0) {
 		// code that can throw an error
 		throw(10);
 	} else {
