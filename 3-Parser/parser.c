@@ -34,6 +34,7 @@ symbol *parse(lexeme *input)
 	}
 	else
 	{
+		// code that can throw an error
 		printtable();
 		return table;
 	}
