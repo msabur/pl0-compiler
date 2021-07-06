@@ -1,0 +1,16 @@
+/* this should not produce an error */
+const z := 8, w:=3;
+var x, y;
+
+procedure J;
+	var x, z;
+	begin
+		x := 7 * y; ; ; 
+		z:=1;
+		y := z*11;
+	end;
+begin
+	y := z * w;
+	call J
+end.
+	
