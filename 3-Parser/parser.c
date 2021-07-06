@@ -8,7 +8,7 @@ Author: Noelle Midkiff
 #include <setjmp.h>
 #include "compiler.h"
 
-/* Set up error management */
+/* Error management */
 int error;
 jmp_buf env;
 #define catch() setjmp(env)
@@ -16,18 +16,35 @@ jmp_buf env;
 
 symbol *table;
 int sym_index;
+lexeme curToken, *list;
 
 void printtable();
 void errorend(int x);
+void getNextToken();
+void expect(int tokenType, int error); // expect a given kind of token
+
+/* Parsing functions */
+void program();
+void block();
+void const_declaration();
+void var_declaration();
+void procedure_declaration();
+void statement();
+void condition();
+void expression();
+void term();
+void factor();
 
 symbol *parse(lexeme *input)
 {
 	table = malloc(1000 * sizeof(symbol));
+	list = input; // so we can access input from a global variable
 	sym_index = 0;
 	error = 0;
 
 	if (catch() != 0)
 	{
+		// we jump here when an error is thrown
 		errorend(error);
 		free(table);
 		return NULL;
