@@ -92,5 +92,5 @@ void printtable()
 	printf("Kind | Name        | Value | Level | Address\n");
 	printf("------------------------------------------------------\n");
 	for (i = 0; i < sym_index; i++)
-		printf("%4d | %11s | %5d | %5d\n", table[i].kind, table[i].name, table[i].val, table[i].level, table[i].addr); 
+		printf("%4d | %11s | %5d | %5d | %5d\n", table[i].kind, table[i].name, table[i].val, table[i].level, table[i].addr); 
 }
