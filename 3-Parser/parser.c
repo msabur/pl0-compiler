@@ -22,10 +22,12 @@ symbol *table;
 int sym_index;
 lexeme curToken, *list;
 
+/* Utilities */
 void printtable();
 void errorend(int x);
-void getNextToken();
-void expect(int tokenType, int error); // expect a given kind of token
+void getToken();
+void expect(int token_type, int error); // expect a given kind of token
+void addSymbol(int kind, char *name, int val);
 
 /* Parsing functions */
 void program();
@@ -112,6 +114,16 @@ void factor()
 
 }
 
+
+void expect(int token_type, int error) {
+	if(curToken.type != token_type)
+		throw(error);
+}
+
+void getToken() {
+	static int tokenIndex = 0;
+	curToken = list[tokenIndex++];
+}
 
 void errorend(int x)
 {
