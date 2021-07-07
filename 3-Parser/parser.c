@@ -73,7 +73,14 @@ void program()
 
 void block()
 {
+	if (curToken.type == constsym)
+		const_declaration();
+	if (curToken.type == varsym)
+		var_declaration();
+	if (curToken.type == procsym)
+		procedure_declaration();
 
+	statement();
 }
 
 void const_declaration()
