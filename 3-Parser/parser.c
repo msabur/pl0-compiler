@@ -85,7 +85,22 @@ void block()
 
 void const_declaration()
 {
+	getToken();
+	expect(identsym, 4);
+	Symbol ident = curToken;
+	getToken();
+	expect(becomessym, 5); 
+	getToken();
+	expect(numbersym, 5);
+	int value = curToken.value;
 
+	// TODO add this symbol to the symbol table
+	
+	getToken();
+	if (curToken.type == commasym)
+		const_declaration();
+	else
+		expect(semicolonsym, 6);
 }
 
 void var_declaration()
