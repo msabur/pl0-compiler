@@ -30,7 +30,7 @@ void expect(int token_type, int error); // expect a given kind of token
 void addSymbol(int kind, char *name, int val);
 
 /* Parsing functions */
-void program();
+void program(); // starting symbol
 void block();
 void const_declaration();
 void var_declaration();
@@ -66,7 +66,9 @@ symbol *parse(lexeme *input)
 
 void program()
 {
-
+	getToken();
+	block();
+	expect(periodsym, 3);
 }
 
 void block()
