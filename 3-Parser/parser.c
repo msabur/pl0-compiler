@@ -52,14 +52,62 @@ symbol *parse(lexeme *input)
 	else
 	{
 		// code that can throw an error
-		for(int i = 0; i < 20; i++) {
-			printf("i=%d ", i);
-			errorend(i);
-		}
+		program();
 		printtable();
 		return table;
 	}
 }
+
+void program()
+{
+
+}
+
+void block()
+{
+
+}
+
+void const_declaration()
+{
+
+}
+
+void var_declaration()
+{
+
+}
+
+void procedure_declaration()
+{
+
+}
+
+void statement()
+{
+
+}
+
+void condition()
+{
+
+}
+
+void expression()
+{
+
+}
+
+void term()
+{
+
+}
+
+void factor()
+{
+
+}
+
 
 void errorend(int x)
 {
