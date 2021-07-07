@@ -52,6 +52,10 @@ symbol *parse(lexeme *input)
 	else
 	{
 		// code that can throw an error
+		for(int i = 0; i < 20; i++) {
+			printf("i=%d ", i);
+			errorend(i);
+		}
 		printtable();
 		return table;
 	}
@@ -59,54 +63,29 @@ symbol *parse(lexeme *input)
 
 void errorend(int x)
 {
-	switch (x)
+	// Misspellings are from the provided skeleton
+	const char *errors[] = 
 	{
-	case 1:
-		printf("Parser Error: Competing Symbol Declarations\n");
-		break;
-	case 2:
-		printf("Parser Error: Unrecognized Statement Form\n");
-		break;
-	case 3:
-		printf("Parser Error: Programs Must Close with a Period\n");
-		break;
-	case 4:
-		printf("Parser Error: Symbols Must Be Declared with an Identifier\n");
-		break;
-	case 5:
-		printf("Parser Error: Constants Must Be Assigned a Value at Declaration\n");
-		break;
-	case 6:
-		printf("Parser Error: Symbol Declarations Must Be Followed By a Semicolon\n");
-		break;
-	case 7:
-		printf("Parser Error: Undeclared Symbol\n");
-		break;
-	case 8:
-		printf("Parser Error: while Must Be Followed By do\n");
-		break;
-	case 9:
-		printf("Parser Error: if Must Be Followed By then\n");
-		break;
-	case 10:
-		printf("Parser Error: begin Must Be Followed By end\n");
-		break;
-	case 11:
-		printf("Parser Error: while and if Statements Must Contain Conditions\n");
-		break;
-	case 12:
-		printf("Parser Error: Conditions Must Contain a Relational-Operator\n");
-		break;
-	case 13:
-		printf("Parser Error: ( Must Be Followed By )\n");
-		break;
-	case 14:
-		printf("Parser Error: call and read Must Be Followed By an Identifier\n");
-		break;
-	default:
+		[ 1] = "Competing Symbol Declarations",
+		[ 2] = "Unrecognized Statement Form",
+		[ 3] = "Programs Must Close with a Period",
+		[ 4] = "Symbols Must Be Declared with an Identifier",
+		[ 5] = "Constants Must Be Assigned a Value at Declaration",
+		[ 6] = "Symbol Declarations Must Be Followed By a Semicolon",
+		[ 7] = "Undeclared Symbol",
+		[ 8] = "while Must Be Followed By do",
+		[ 9] = "if Must Be Followed By then",
+		[10] = "begin Must Be Followed By end",
+		[11] = "while and if Statements Must Contain Conditions",
+		[12] = "Conditions Must Contain a Relational-Operator",
+		[13] = "( Must Be Followed By )",
+		[14] = "call and read Must Be Followed By an Identifien"
+	};
+
+	if (x < 1 || x > 14)
 		printf("Implementation Error: Unrecognized Error Code\n");
-		break;
-	}
+	else
+		printf("Parser Error: %s\n", errors[x]);
 
 }
 
