@@ -26,7 +26,7 @@ lexeme curToken, *list;
 void printtable();
 void errorend(int x);
 void getToken();
-void expect(int token_type, int error); // expect a given kind of token
+void expect(int token_type, int err); // expect a given kind of token
 void addSymbol(int kind, char *name, int val);
 
 /* Parsing functions */
@@ -87,13 +87,14 @@ void const_declaration()
 {
 	getToken();
 	expect(identsym, 4);
-	Symbol ident = curToken;
+	lexeme ident = curToken;
 	getToken();
 	expect(becomessym, 5); 
 	getToken();
 	expect(numbersym, 5);
 	int value = curToken.value;
 
+	// printf("New constant: name %s, value %d\n", ident.name, value);
 	// TODO add this symbol to the symbol table
 	
 	getToken();
@@ -144,9 +145,9 @@ void factor()
 }
 
 
-void expect(int token_type, int error) {
+void expect(int token_type, int err) {
 	if(curToken.type != token_type)
-		throw(error);
+		throw(err);
 }
 
 void getToken() {
