@@ -85,16 +85,18 @@ void block()
 
 void const_declaration()
 {
+	// NOTE: the kind for const is 1
+	lexeme ident;
 	getToken();
 	expect(identsym, 4);
-	lexeme ident = curToken;
+	ident = curToken;
 	getToken();
 	expect(becomessym, 5); 
 	getToken();
 	expect(numbersym, 5);
-	int value = curToken.value;
+	ident.value = curToken.value;
 
-	// printf("New constant: name %s, value %d\n", ident.name, value);
+	// printf("New constant: name %s, value %d\n", ident.name, ident.value);
 	// TODO add this symbol to the symbol table
 	
 	getToken();
@@ -111,11 +113,13 @@ void const_declaration()
 
 void var_declaration()
 {
+	// NOTE: the kind for var is 2
 
 }
 
 void procedure_declaration()
 {
+	// NOTE: the kind for procedure is 3
 
 }
 
