@@ -98,9 +98,14 @@ void const_declaration()
 	
 	getToken();
 	if (curToken.type == commasym)
+	{
 		const_declaration();
+	}
 	else
-		expect(semicolonsym, 6);
+	{
+		expect(semicolonsym, 6); // need ';' at end of const declaration
+		getToken();
+	}	
 }
 
 void var_declaration()
