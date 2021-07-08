@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <setjmp.h>
 #include "compiler.h"
@@ -21,13 +22,16 @@ jmp_buf env;
 symbol *table;
 int sym_index;
 lexeme curToken, *list;
+int curLevel; // tracks our lexicographical level
 
 /* Utilities */
 void printtable();
 void errorend(int x);
 void getToken();
 void expect(int token_type, int err); // expect a given kind of token
-void addSymbol(int kind, char *name, int val);
+void addSymbol(char *name, int val, int type);
+symbol *fetchSymbol(char *name);
+bool containsSymbol(char *name);
 
 /* Parsing functions */
 void program(); // starting symbol
@@ -66,6 +70,7 @@ symbol *parse(lexeme *input)
 
 void program()
 {
+	addSymbol("main", 0, procsym);
 	getToken();
 	block();
 	expect(periodsym, 3);
@@ -97,7 +102,10 @@ void const_declaration()
 	ident.value = curToken.value;
 
 	// printf("New constant: name %s, value %d\n", ident.name, ident.value);
-	// TODO add this symbol to the symbol table
+	if (containsSymbol(ident.name))
+		throw(1);
+	addSymbol(ident.name, ident.value, constsym);
+	// printtable();
 	
 	getToken();
 	if (curToken.type == commasym)
@@ -157,6 +165,69 @@ void expect(int token_type, int err) {
 void getToken() {
 	static int tokenIndex = 0;
 	curToken = list[tokenIndex++];
+}
+
+void addSymbol(char *name, int val, int type)
+{
+	// For a new entry to the symbol table,
+	// we need the values for name, val, kind, and addr. 
+	// We got name and val from arguments, and now 
+	// we determine what kind and addr should be.
+
+	int kind, addr; // addr stands for address
+
+	// Determine kind
+	if (type == constsym)
+		kind = 1;
+	else if (type == varsym)
+		kind = 2;
+	else if (type == procsym)
+		kind = 3;
+
+	// Determine addr
+	if (kind == 3 || kind == 1) 
+		addr = 0; // for procedures and constants
+	else if (table[sym_index - 1].kind == 3)
+		addr = 3; // first symbol in a procedure
+	else
+		addr = table[sym_index - 1].addr + 1; // for normal variables
+
+	// Now, we add this symbol to the table
+	table[sym_index].addr = addr;
+	table[sym_index].kind = kind;
+	table[sym_index].val = val;
+	table[sym_index].mark = 0;
+	table[sym_index].level = curLevel;
+	strcpy(table[sym_index].name, name);
+
+	// Increment the index
+	++sym_index;
+}
+
+// Returns NULL if the symbol isn't found
+symbol *fetchSymbol(char *name)
+{
+	for (int i = sym_index - 1; i != -1; i--)
+	{
+		if (strcmp(table[i].name, name) == 0)
+		{
+			return &table[i];
+		}
+	}
+	return NULL;
+}
+
+// Returns true if the symbol is in the table, otherwise false
+bool containsSymbol(char *name)
+{
+	for (int i = sym_index - 1; i != -1; i--)
+	{
+		if (strcmp(table[i].name, name) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void errorend(int x)
