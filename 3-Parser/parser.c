@@ -4,7 +4,7 @@
  * Homework #3 (Parser - Code Generator)
  * Authors: Maahee, Grant Allan
  * Due: 7/15/2021
-*/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,6 +32,7 @@ void expect(int token_type, int err); // expect a given kind of token
 void addSymbol(char *name, int val, int type);
 symbol *fetchSymbol(char *name);
 bool containsSymbol(char *name);
+void markSymbolsInScope();
 
 /* Parsing functions */
 void program(); // starting symbol
@@ -106,7 +107,7 @@ void const_declaration()
 		throw(1);
 	addSymbol(ident.name, ident.value, constsym);
 	// printtable();
-	
+
 	getToken();
 	if (curToken.type == commasym)
 	{
@@ -181,7 +182,7 @@ void addSymbol(char *name, int val, int type)
 		kind = 1;
 	else if (type == varsym)
 		kind = 2;
-	else if (type == procsym)
+	else // procedures
 		kind = 3;
 
 	// Determine addr
@@ -209,10 +210,8 @@ symbol *fetchSymbol(char *name)
 {
 	for (int i = sym_index - 1; i != -1; i--)
 	{
-		if (strcmp(table[i].name, name) == 0)
-		{
+		if (strcmp(table[i].name, name) == 0 && table[i].mark == 0)
 			return &table[i];
-		}
 	}
 	return NULL;
 }
@@ -222,12 +221,23 @@ bool containsSymbol(char *name)
 {
 	for (int i = sym_index - 1; i != -1; i--)
 	{
-		if (strcmp(table[i].name, name) == 0)
-		{
+		if (strcmp(table[i].name, name) == 0 && table[i].mark == 0)
 			return true;
-		}
 	}
 	return false;
+}
+
+// Marks symbols in the current level (scope).
+// Used when leaving a scope, such as when exiting a procedure.
+// Note: Should be called before decrementing the curLevel variable
+void markSymbolsInScope() {
+	for (int i = sym_index - 1; i != -1; i--) {
+		if (table[i].mark == 1) // should only be true when marking main
+			continue;
+		if (table[i].level != curLevel) // done marking the current scope
+			break;
+		table[i].mark = 1;
+	}
 }
 
 void errorend(int x)
