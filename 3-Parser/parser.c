@@ -82,7 +82,7 @@ void block()
 		const_declaration();
 	if (curToken.type == varsym)
 		var_declaration();
-	if (curToken.type == procsym)
+	while (curToken.type == procsym)
 		procedure_declaration();
 
 	statement();
