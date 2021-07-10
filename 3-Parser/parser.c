@@ -33,6 +33,7 @@ void addSymbol(char *name, int val, int type);
 symbol *fetchSymbol(char *name);
 bool containsSymbol(char *name);
 void markSymbolsInScope();
+bool conflictingSymbol(char *name);
 
 /* Parsing functions */
 void program(); // starting symbol
@@ -102,8 +103,8 @@ void const_declaration()
 	expect(numbersym, 5);
 	ident.value = curToken.value;
 
-	// printf("New constant: name %s, value %d\n", ident.name, ident.value);
-	if (containsSymbol(ident.name))
+	// printf("New thing: name %s, value %d\n", ident.name, ident.value);
+	if (conflictingSymbol(ident.name))
 		throw(1);
 	addSymbol(ident.name, ident.value, constsym);
 	// printtable();
@@ -115,7 +116,7 @@ void const_declaration()
 	}
 	else
 	{
-		expect(semicolonsym, 6); // need ';' at end of const declaration
+		expect(semicolonsym, 6); // need ';' at end of declaration
 		getToken();
 	}	
 }
@@ -123,38 +124,177 @@ void const_declaration()
 void var_declaration()
 {
 	// NOTE: the kind for var is 2
+	lexeme ident;
+	getToken();
+	expect(identsym, 4);
+	ident = curToken;
 
+	// printf("New thing: name %s, value %d\n", ident.name, ident.value);
+	if (conflictingSymbol(ident.name))
+		throw(1);
+	addSymbol(ident.name, 0, varsym);
+
+	getToken();
+	if (curToken.type == commasym)
+	{
+		var_declaration();
+	}
+	else
+	{
+		expect(semicolonsym, 6); // need ';' at end of declaration
+		getToken();
+	}
 }
 
 void procedure_declaration()
 {
 	// NOTE: the kind for procedure is 3
+	lexeme ident;
+	getToken();
+	expect(identsym, 4);
+	ident = curToken;
 
+	// printf("New thing: name %s, value %d\n", ident.name, ident.value);
+	if (conflictingSymbol(ident.name))
+		throw(1);
+	addSymbol(ident.name, 0, procsym);
+
+	getToken();
+	expect(semicolonsym, 6); // need ';' at end of declaration
+	getToken();
+
+	curLevel++;
+	block();
+	markSymbolsInScope();
+	curLevel--;
+
+	expect(semicolonsym, 6); // TODO make sure this is the right error
+	getToken();
 }
 
 void statement()
 {
-
+	switch (curToken.type)
+	{
+	case identsym:
+		getToken();
+		expect(becomessym, 2);
+		getToken();
+		expression();
+		break;
+	case callsym:
+		getToken();
+		expect(identsym, 14);
+		getToken();
+		break;
+	case beginsym:
+		do
+		{
+			getToken();
+			statement();
+		} while (curToken.type == semicolonsym);
+		if (curToken.type != endsym) {
+			// TODO delet dis after we pass parserexample2.txt
+			/* puts("here we are"); */
+			/* printf("token type = %d\n", curToken.type); */
+		}
+		expect(endsym, 10);
+		getToken();
+		break;
+	case ifsym:
+		getToken();
+		condition();
+		expect(thensym, 9);
+		getToken();
+		statement();
+		if (curToken.type == elsesym)
+		{
+			getToken();
+			statement();
+		}
+		break;
+	case whilesym:
+		condition();
+		expect(dosym, 8);
+		getToken();
+		statement();
+		break;
+	case readsym:
+		getToken();
+		expect(identsym, 14);
+		getToken();
+		break;
+	case writesym:
+		getToken();
+		expect(identsym, 2);
+		getToken();
+		break;
+	default:
+		break;
+	}
 }
 
 void condition()
 {
-
+	if (curToken.type == oddsym)
+	{
+		getToken();
+		expression();
+	}
+	else {
+		getToken();
+		expression();
+		// look for a relational operator
+		if (curToken.type < eqlsym || curToken.type > geqsym)
+			throw(12);
+		getToken();
+		expression();
+	}
 }
 
 void expression()
 {
-
+	if (curToken.type == plussym || curToken.type == minussym)
+		getToken();
+	term();
+	while (curToken.type == plussym || curToken.type == minussym)
+	{
+		getToken();
+		term();
+	}
 }
 
 void term()
 {
-
+	factor();
+	while (curToken.type == multsym
+			|| curToken.type == slashsym
+			|| curToken.type == modsym)
+	{
+		getToken();
+		factor();
+	}
 }
 
 void factor()
 {
-
+	if (curToken.type == identsym)
+	{
+		// not doing anything, for now...
+		getToken();
+	}
+	else if (curToken.type == numbersym)
+	{
+		// ...
+		getToken();
+	}
+	else if (curToken.type == lparentsym)
+	{
+		getToken();
+		expression();
+		expect(rparentsym, 13);
+		getToken();
+	}
 }
 
 
@@ -188,8 +328,8 @@ void addSymbol(char *name, int val, int type)
 	// Determine addr
 	if (kind == 3 || kind == 1) 
 		addr = 0; // for procedures and constants
-	else if (table[sym_index - 1].kind == 3)
-		addr = 3; // first symbol in a procedure
+	else if (table[sym_index - 1].addr == 0)
+		addr = 3; // first symbol
 	else
 		addr = table[sym_index - 1].addr + 1; // for normal variables
 
@@ -222,6 +362,19 @@ bool containsSymbol(char *name)
 	for (int i = sym_index - 1; i != -1; i--)
 	{
 		if (strcmp(table[i].name, name) == 0 && table[i].mark == 0)
+			return true;
+	}
+	return false;
+}
+
+// Checks if a symbol was already declared in the current scope
+bool conflictingSymbol(char *name)
+{
+	for (int i = sym_index - 1; i != -1; i--)
+	{
+		if (table[i].level != curLevel)
+			break;
+		if (strcmp(table[i].name, name) == 0)
 			return true;
 	}
 	return false;
@@ -273,7 +426,7 @@ void printtable()
 	int i;
 	printf("Symbol Table:\n");
 	printf("Kind | Name        | Value | Level | Address\n");
-	printf("------------------------------------------------------\n");
+	printf("--------------------------------------------\n");
 	for (i = 0; i < sym_index; i++)
 		printf("%4d | %11s | %5d | %5d | %5d\n", table[i].kind, table[i].name, table[i].val, table[i].level, table[i].addr); 
 }
