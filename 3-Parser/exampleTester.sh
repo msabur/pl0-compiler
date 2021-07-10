@@ -9,68 +9,20 @@ fi
 
 echo "Compiles"
 
-echo -n "Testing Error 1 : "
-./a.out parserexample1.txt > output.txt
-executed=$?
-if [[ $executed !=  0 ]]; then
-	echo ":'("
-	exit 1
-else
-	diff -w -B output.txt parserout1.txt &> /dev/null
+cd tests
+
+for f in *.in
+do
+	base="${f%.*}" # the filename without the extension at the end
+	echo -n "Testing $f : "
+	# .././a.out $f | diff -w -B "$base.cmp" - &> /dev/null
+	output=$(.././a.out $f | diff -w -B "$base.cmp" -)
 	correct=$?
 	if [[ $correct != 0 ]]; then
-		echo ":'("
-		exit 1
+		echo "Fail"
+		echo "Here's the diff in the form < (correct output) > (our output):"
+		echo "$output"
 	else
-		echo "───==≡≡ΣΣ((( つºل͜º)つ"
+		echo "Pass"
 	fi
-fi
-
-
-echo -n "Testing Error 2 : "
-
-./a.out parserexample2.txt > output.txt
-executed=$?
-if [[ $executed !=  0 ]]; then
-	echo ":'("
-else
-	diff -w -B output.txt parserout2.txt &> /dev/null
-	correct=$?
-	if [[ $correct != 0 ]]; then
-		echo ":'("
-	else
-		echo "───==≡≡ΣΣ((( つºل͜º)つ"
-	fi
-fi
-
-echo -n "Testing Error 10 : "
-
-./a.out parserexample3.txt > output.txt
-executed=$?
-if [[ $executed !=  0 ]]; then
-	echo ":'("
-else
-	diff -w -B output.txt parserout3.txt &> /dev/null
-	correct=$?
-	if [[ $correct != 0 ]]; then
-		echo ":'("
-	else
-		echo "───==≡≡ΣΣ((( つºل͜º)つ"
-	fi
-fi
-
-echo -n "Testing Symbol Table : "
-
-./a.out parserexample4.txt > output.txt
-executed=$?
-if [[ $executed !=  0 ]]; then
-	echo ":'("
-else
-	diff -w -B output.txt parserout4.txt &> /dev/null
-	correct=$?
-	if [[ $correct != 0 ]]; then
-		echo ":'("
-	else
-		echo "───==≡≡ΣΣ((( つºل͜º)つ"
-	fi
-fi
+done
