@@ -84,7 +84,7 @@ void block()
 		const_declaration();
 	if (curToken.type == varsym)
 		var_declaration();
-	while (curToken.type == procsym)
+	if (curToken.type == procsym)
 		procedure_declaration();
 
 	statement();
@@ -148,28 +148,31 @@ void var_declaration()
 
 void procedure_declaration()
 {
-	// NOTE: the kind for procedure is 3
-	lexeme ident;
-	getToken();
-	expect(identsym, 4);
-	ident = curToken;
+	while (curToken.type == procsym)
+	{
+		// NOTE: the kind for procedure is 3
+		lexeme ident;
+		getToken();
+		expect(identsym, 4);
+		ident = curToken;
 
-	// printf("New thing: name %s, value %d\n", ident.name, ident.value);
-	if (conflictingSymbol(ident.name))
-		throw(1);
-	addSymbol(ident.name, 0, procsym);
+		// printf("New thing: name %s, value %d\n", ident.name, ident.value);
+		if (conflictingSymbol(ident.name))
+			throw(1);
+		addSymbol(ident.name, 0, procsym);
 
-	getToken();
-	expect(semicolonsym, 6); // need ';' at end of declaration
-	getToken();
+		getToken();
+		expect(semicolonsym, 6); // need ';' at end of declaration
+		getToken();
 
-	curLevel++;
-	block();
-	markSymbolsInScope();
-	curLevel--;
+		curLevel++;
+		block();
+		markSymbolsInScope();
+		curLevel--;
 
-	expect(semicolonsym, 6); // TODO make sure this is the right error
-	getToken();
+		expect(semicolonsym, 6); // TODO make sure this is the right error
+		getToken();
+	}
 }
 
 void statement()
@@ -214,6 +217,7 @@ void statement()
 		}
 		break;
 	case whilesym:
+		getToken();
 		condition();
 		expect(dosym, 8);
 		getToken();
@@ -242,7 +246,6 @@ void condition()
 		expression();
 	}
 	else {
-		getToken();
 		expression();
 		// look for a relational operator
 		if (curToken.type < eqlsym || curToken.type > geqsym)
