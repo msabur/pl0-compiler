@@ -180,6 +180,8 @@ void statement()
 	switch (curToken.type)
 	{
 	case identsym:
+		if (!containsSymbol(curToken.name))
+			throw(7);
 		getToken();
 		expect(becomessym, 2);
 		getToken();
@@ -188,6 +190,8 @@ void statement()
 	case callsym:
 		getToken();
 		expect(identsym, 14);
+		if (!containsSymbol(curToken.name))
+			throw(7);
 		getToken();
 		break;
 	case beginsym:
@@ -226,11 +230,15 @@ void statement()
 	case readsym:
 		getToken();
 		expect(identsym, 14);
+		if (!containsSymbol(curToken.name))
+			throw(7);
 		getToken();
 		break;
 	case writesym:
 		getToken();
 		expect(identsym, 2);
+		if (!containsSymbol(curToken.name))
+			throw(7);
 		getToken();
 		break;
 	default:
@@ -293,6 +301,8 @@ void factor()
 {
 	if (curToken.type == identsym)
 	{
+		if (!containsSymbol(curToken.name))
+			throw(7);
 		// not doing anything, for now...
 		getToken();
 	}
