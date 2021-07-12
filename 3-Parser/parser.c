@@ -31,7 +31,6 @@ void getToken();
 void expect(int token_type, int err); // expect a given kind of token
 void addSymbol(char *name, int val, int type);
 symbol *fetchSymbol(char *name);
-bool containsSymbol(char *name);
 void markSymbolsInScope();
 bool conflictingSymbol(char *name);
 
@@ -386,17 +385,6 @@ symbol *fetchSymbol(char *name)
 			return &table[i];
 	}
 	return NULL;
-}
-
-// Returns true if the symbol is in the table, otherwise false
-bool containsSymbol(char *name)
-{
-	for (int i = sym_index - 1; i != -1; i--)
-	{
-		if (strcmp(table[i].name, name) == 0 && table[i].mark == 0)
-			return true;
-	}
-	return false;
 }
 
 // Checks if a symbol was already declared in the current scope
