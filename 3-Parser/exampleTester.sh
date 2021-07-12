@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [[ $1 == "-v" ]]; then
+	show_diffs=true
+else
+	show_diffs=false
+fi
+
 make
 compiled=$?
 if [[ $compiled != 0 ]]; then
@@ -20,8 +26,10 @@ do
 	correct=$?
 	if [[ $correct != 0 ]]; then
 		echo "Fail"
-		echo "Here's the diff in the form < (correct output) > (our output):"
-		echo "$output"
+		if [[ $show_diffs == true ]]; then
+			echo "Diff in the form < (correct output) > (our output):"
+			echo "$output"
+		fi
 	else
 		echo "Pass"
 	fi
