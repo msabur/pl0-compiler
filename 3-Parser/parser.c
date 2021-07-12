@@ -170,10 +170,12 @@ void procedure_declaration()
 
 void statement()
 {
+	symbol *sym;
 	switch (curToken.type)
 	{
 	case identsym:
-		if (!containsSymbol(curToken.name))
+		sym = fetchSymbol(curToken.name);
+		if (!sym || sym->kind != 2)
 			throw(7);
 		getToken();
 		expect(becomessym, 2);
@@ -183,7 +185,8 @@ void statement()
 	case callsym:
 		getToken();
 		expect(identsym, 14);
-		if (!containsSymbol(curToken.name))
+		sym = fetchSymbol(curToken.name);
+		if (!sym || sym->kind != 3)
 			throw(7);
 		getToken();
 		break;
@@ -218,14 +221,16 @@ void statement()
 	case readsym:
 		getToken();
 		expect(identsym, 14);
-		if (!containsSymbol(curToken.name))
+		sym = fetchSymbol(curToken.name);
+		if (!sym || sym->kind != 2)
 			throw(7);
 		getToken();
 		break;
 	case writesym:
 		getToken();
 		expect(identsym, 2);
-		if (!containsSymbol(curToken.name))
+		sym = fetchSymbol(curToken.name);
+		if (!sym || (sym->kind != 2 && sym->kind != 1))
 			throw(7);
 		getToken();
 		break;
@@ -285,7 +290,8 @@ void factor()
 {
 	if (curToken.type == identsym)
 	{
-		if (!containsSymbol(curToken.name))
+		symbol *sym = fetchSymbol(curToken.name);
+		if (!sym || (sym->kind != 2 && sym->kind != 1))
 			throw(7);
 		getToken();
 	}
