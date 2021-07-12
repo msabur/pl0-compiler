@@ -92,7 +92,6 @@ void block()
 
 void const_declaration()
 {
-	// NOTE: the kind for const is 1
 	lexeme ident;
 	getToken();
 	expect(identsym, 4);
@@ -103,11 +102,9 @@ void const_declaration()
 	expect(numbersym, 5);
 	ident.value = curToken.value;
 
-	// printf("New thing: name %s, value %d\n", ident.name, ident.value);
 	if (conflictingSymbol(ident.name))
 		throw(1);
 	addSymbol(ident.name, ident.value, constsym);
-	// printtable();
 
 	getToken();
 	if (curToken.type == commasym)
@@ -123,13 +120,11 @@ void const_declaration()
 
 void var_declaration()
 {
-	// NOTE: the kind for var is 2
 	lexeme ident;
 	getToken();
 	expect(identsym, 4);
 	ident = curToken;
 
-	// printf("New thing: name %s, value %d\n", ident.name, ident.value);
 	if (conflictingSymbol(ident.name))
 		throw(1);
 	addSymbol(ident.name, 0, varsym);
@@ -150,13 +145,11 @@ void procedure_declaration()
 {
 	while (curToken.type == procsym)
 	{
-		// NOTE: the kind for procedure is 3
 		lexeme ident;
 		getToken();
 		expect(identsym, 4);
 		ident = curToken;
 
-		// printf("New thing: name %s, value %d\n", ident.name, ident.value);
 		if (conflictingSymbol(ident.name))
 			throw(1);
 		addSymbol(ident.name, 0, procsym);
@@ -239,7 +232,6 @@ void statement()
 	default:
 		break;
 	}
-	/* fprintf(stderr, "after statement is token %d\n", curToken.type); */
 }
 
 void condition()
@@ -251,7 +243,8 @@ void condition()
 	}
 	else {
 		expression();
-		// look for a relational operator
+		// here we throw an error if there is no relational operator.
+		// the relational operators are from eqlsym to geqsym
 		if (curToken.type < eqlsym || curToken.type > geqsym)
 			throw(12);
 		getToken();
@@ -259,6 +252,11 @@ void condition()
 	}
 }
 
+/*
+ * expression ::= term
+ *              | <add/subtract> term
+ *              | expression <add/subtract> term 
+ */
 void expression()
 {
 	if (curToken.type == plussym || curToken.type == minussym)
@@ -289,12 +287,10 @@ void factor()
 	{
 		if (!containsSymbol(curToken.name))
 			throw(7);
-		// not doing anything, for now...
 		getToken();
 	}
 	else if (curToken.type == numbersym)
 	{
-		// ...
 		getToken();
 	}
 	else if (curToken.type == lparentsym)
@@ -304,6 +300,15 @@ void factor()
 		expect(rparentsym, 13);
 		getToken();
 	}
+	else
+	{
+		/*
+		 * XXX Not sure whether to throw an error here.
+		 * The recitation slide throws 'identifier, (, or number expected',
+		 * but that doesn't match any of the errors in the instructions.
+		 */
+	}
+
 }
 
 
@@ -319,10 +324,12 @@ void getToken() {
 
 void addSymbol(char *name, int val, int type)
 {
-	// For a new entry to the symbol table,
-	// we need the values for name, val, kind, and addr. 
-	// We got name and val from arguments, and now 
-	// we determine what kind and addr should be.
+	/*
+	 * For a new entry to the symbol table,
+	 * we need the values for name, val, kind, and addr. 
+	 * We got name and val from arguments, and now 
+	 * we determine what kind and addr should be.
+	 */
 
 	int kind, addr; // addr stands for address
 
@@ -338,7 +345,7 @@ void addSymbol(char *name, int val, int type)
 	if (kind == 3 || kind == 1) 
 		addr = 0; // for procedures and constants
 	else if (table[sym_index - 1].addr == 0)
-		addr = 3; // first symbol
+		addr = 3; // first symbol has offset 3
 	else
 		addr = table[sym_index - 1].addr + 1; // for normal variables
 
