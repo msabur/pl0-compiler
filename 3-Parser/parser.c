@@ -244,16 +244,7 @@ void statement()
 	default:
 		break;
 	}
-
 	/* fprintf(stderr, "after statement is token %d\n", curToken.type); */
-	// checking if the statement is followed by a token from the follow set
-	static token_type follow[] = {periodsym, endsym, semicolonsym, elsesym};
-	bool we_have_a_problem = true;
-	for (int i = 0; i < sizeof(follow)/sizeof(*follow); i++)
-		if (curToken.type == follow[i])
-			we_have_a_problem = false;
-	if (we_have_a_problem) 
-		throw(2);
 }
 
 void condition()
