@@ -6,6 +6,10 @@ else
 	show_diffs=false
 fi
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
 make
 compiled=$?
 if [[ $compiled != 0 ]]; then
@@ -25,12 +29,12 @@ do
 	output=$(.././a.out $f | diff -w -B "$base.cmp" -)
 	correct=$?
 	if [[ $correct != 0 ]]; then
-		echo "Fail"
+		echo -e "${RED}Fail${NC}"
 		if [[ $show_diffs == true ]]; then
 			echo "Diff in the form < (correct output) > (our output):"
 			echo "$output"
 		fi
 	else
-		echo "Pass"
+		echo -e "${GREEN}Pass${NC}"
 	fi
 done

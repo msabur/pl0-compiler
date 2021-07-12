@@ -10,7 +10,7 @@ procedure J;
 		begin
 			z := z + 10;
 			write z;
-		end
+		end;
 		if then
 			write x;
 		end
