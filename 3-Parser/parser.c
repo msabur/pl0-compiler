@@ -200,11 +200,6 @@ void statement()
 			getToken();
 			statement();
 		} while (curToken.type == semicolonsym);
-		if (curToken.type != endsym) {
-			// TODO delet dis after we pass parserexample2.txt
-			/* puts("here we are"); */
-			/* printf("token type = %d\n", curToken.type); */
-		}
 		expect(endsym, 10);
 		getToken();
 		break;
