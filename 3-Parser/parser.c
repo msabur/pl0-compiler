@@ -48,10 +48,9 @@ void factor();
 
 symbol *parse(lexeme *input)
 {
+	// Initializing symbol table and token list
 	table = malloc(1000 * sizeof(symbol));
 	list = input; // so we can access input from a global variable
-	sym_index = 0;
-	error = 0;
 
 	if (catch() != 0)
 	{
@@ -63,14 +62,15 @@ symbol *parse(lexeme *input)
 	else
 	{
 		// code that can throw an error
-		program();
-		printtable();
+		program(); // We begin parsing!
+		printtable(); // print the symbol table
 		return table;
 	}
 }
 
 void program()
 {
+	// the main procedure is always the first item in our symbol table
 	addSymbol("main", 0, procsym);
 	getToken();
 	block();
@@ -101,18 +101,22 @@ void const_declaration()
 	expect(numbersym, 5);
 	ident.value = curToken.value;
 
+	// We add it to the symbol table only if it wasn't already there
 	if (conflictingSymbol(ident.name))
 		throw(1);
 	addSymbol(ident.name, ident.value, constsym);
 
 	getToken();
+
+	// If we see a comma, we have to parse another declaration
 	if (curToken.type == commasym)
 	{
 		const_declaration();
 	}
+	// Otherwise we need semicolon to mark the end of the declaration
 	else
 	{
-		expect(semicolonsym, 6); // need ';' at end of declaration
+		expect(semicolonsym, 6); // need ; at end of declaration
 		getToken();
 	}	
 }
@@ -124,18 +128,23 @@ void var_declaration()
 	expect(identsym, 4);
 	ident = curToken;
 
+	// We add it to the symbol table only if it wasn't already there
 	if (conflictingSymbol(ident.name))
 		throw(1);
 	addSymbol(ident.name, 0, varsym);
 
 	getToken();
+
+	// If we see a comma, we have to parse another declaration
 	if (curToken.type == commasym)
 	{
 		var_declaration();
 	}
+
+	// Otherwise we need semicolon to mark the end of the declaration
 	else
 	{
-		expect(semicolonsym, 6); // need ';' at end of declaration
+		expect(semicolonsym, 6); // need ; at end of declaration
 		getToken();
 	}
 }
@@ -149,6 +158,7 @@ void procedure_declaration()
 		expect(identsym, 4);
 		ident = curToken;
 
+		// We add it to the symbol table only if it wasn't already there
 		if (conflictingSymbol(ident.name))
 			throw(1);
 		addSymbol(ident.name, 0, procsym);
@@ -157,9 +167,15 @@ void procedure_declaration()
 		expect(semicolonsym, 6); // need ';' at end of declaration
 		getToken();
 
+		// A procedure's body is its own scope. We track that with curLevel
 		curLevel++;
-		block();
+
+		// Parse the body of the procedure
+		block(); 
+
+		// Make sure the procedure's local variables can't be used outside
 		markSymbolsInScope();
+
 		curLevel--;
 
 		expect(semicolonsym, 6); // TODO make sure this is the right error
@@ -173,6 +189,7 @@ void statement()
 	switch (curToken.type)
 	{
 	case identsym:
+		// We can only assign to variables (kind 2)
 		sym = fetchSymbol(curToken.name);
 		if (!sym || sym->kind != 2)
 			throw(7);
@@ -184,6 +201,7 @@ void statement()
 	case callsym:
 		getToken();
 		expect(identsym, 14);
+		// We can only call procedures (kind 3)
 		sym = fetchSymbol(curToken.name);
 		if (!sym || sym->kind != 3)
 			throw(7);
@@ -220,6 +238,7 @@ void statement()
 	case readsym:
 		getToken();
 		expect(identsym, 14);
+		// We can only read input into variables (kind 2)
 		sym = fetchSymbol(curToken.name);
 		if (!sym || sym->kind != 2)
 			throw(7);
@@ -228,8 +247,9 @@ void statement()
 	case writesym:
 		getToken();
 		expect(identsym, 2);
+		// We can't write procedures (kind 3) to the screen
 		sym = fetchSymbol(curToken.name);
-		if (!sym || (sym->kind != 2 && sym->kind != 1))
+		if (!sym || sym->kind == 3)
 			throw(7);
 		getToken();
 		break;
@@ -240,8 +260,11 @@ void statement()
 
 void condition()
 {
-	// Check for error "while and if Statements Must Contain Conditions"
+	// We should throw an error when a condition is missing
+
 	bool missing_condition = true;
+
+	// Checking if the current token can be the start of a condition
 	const token_type first[] = {oddsym, plussym, minussym, identsym,
 		numbersym, lparentsym};
 	for (int i = 0; i < sizeof(first)/sizeof(*first); i++)
@@ -257,8 +280,8 @@ void condition()
 	}
 	else {
 		expression();
-		// here we throw an error if there is no relational operator.
-		// the relational operators are from eqlsym to geqsym
+		// Here we throw an error if there is no relational operator.
+		// The relational operators are from eqlsym to geqsym
 		if (curToken.type < eqlsym || curToken.type > geqsym)
 			throw(12);
 		getToken();
@@ -266,11 +289,6 @@ void condition()
 	}
 }
 
-/*
- * expression ::= term
- *              | <add/subtract> term
- *              | expression <add/subtract> term 
- */
 void expression()
 {
 	if (curToken.type == plussym || curToken.type == minussym)
@@ -299,8 +317,9 @@ void factor()
 {
 	if (curToken.type == identsym)
 	{
+		// A procedure name can't be part of an arithmetic expression
 		symbol *sym = fetchSymbol(curToken.name);
-		if (!sym || (sym->kind != 2 && sym->kind != 1))
+		if (!sym || sym->kind == 3)
 			throw(7);
 		getToken();
 	}
@@ -326,17 +345,19 @@ void factor()
 
 }
 
-
+// Throws an error if the current token isn't of the expected type
 void expect(int token_type, int err) {
 	if(curToken.type != token_type)
 		throw(err);
 }
 
+// Fetches the next token and assigns it to the global variable curToken
 void getToken() {
 	static int tokenIndex = 0;
 	curToken = list[tokenIndex++];
 }
 
+// Adds a symbol to the symbol table
 void addSymbol(char *name, int val, int type)
 {
 	/*
@@ -376,7 +397,7 @@ void addSymbol(char *name, int val, int type)
 	++sym_index;
 }
 
-// Returns NULL if the symbol isn't found
+// Returns the requested symbol, or NULL if it's not found
 symbol *fetchSymbol(char *name)
 {
 	for (int i = sym_index - 1; i != -1; i--)
