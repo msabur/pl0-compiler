@@ -241,6 +241,16 @@ void statement()
 
 void condition()
 {
+	// Check for error "while and if Statements Must Contain Conditions"
+	bool missing_condition = true;
+	const token_type first[] = {oddsym, plussym, minussym, identsym,
+		numbersym, lparentsym};
+	for (int i = 0; i < sizeof(first)/sizeof(*first); i++)
+		if (curToken.type == first[i])
+			missing_condition = false;
+	if (missing_condition)
+		throw(11);
+
 	if (curToken.type == oddsym)
 	{
 		getToken();
