@@ -1,4 +1,3 @@
-/* this should result in error 1 : competing symbol declarations */
 const a := 8;
 var x, y;
 procedure J;

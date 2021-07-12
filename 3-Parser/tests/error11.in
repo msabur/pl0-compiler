@@ -1,0 +1,23 @@
+const z := 8, w:=3;
+var x, y;
+
+procedure J;
+	var x, z;
+	begin
+		x := 7 * y; ; ; 
+		z:=1;
+		while z < 10 do
+		begin
+			z := z + 10;
+			write z;
+		end
+		if then
+			write x;
+		end
+		y := z*11;
+	end;
+begin
+	y := z * w;
+	call J
+end.
+	

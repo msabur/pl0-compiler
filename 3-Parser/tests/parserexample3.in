@@ -1,6 +1,0 @@
-/* this should result in error 10 : begin must be followed by end */
-var x;
-begin
-	x := 8
-	x := x * 4
-end.
