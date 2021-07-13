@@ -61,7 +61,6 @@ symbol *parse(lexeme *input)
 	}
 	else
 	{
-		// code that can throw an error
 		program(); // We begin parsing!
 		printtable(); // print the symbol table
 		return table;
@@ -91,6 +90,7 @@ void block()
 
 void const_declaration()
 {
+	// Gather information about the constant
 	lexeme ident;
 	getToken();
 	expect(identsym, 4);
@@ -123,6 +123,7 @@ void const_declaration()
 
 void var_declaration()
 {
+	// Gather information about the variable
 	lexeme ident;
 	getToken();
 	expect(identsym, 4);
@@ -153,6 +154,7 @@ void procedure_declaration()
 {
 	while (curToken.type == procsym)
 	{
+		// Gather information about the procedure
 		lexeme ident;
 		getToken();
 		expect(identsym, 4);
@@ -189,7 +191,7 @@ void statement()
 	switch (curToken.type)
 	{
 	case identsym:
-		// We can only assign to variables (kind 2)
+		// Make sure that we only assign to variables (kind 2)
 		sym = fetchSymbol(curToken.name);
 		if (!sym || sym->kind != 2)
 			throw(7);
@@ -201,7 +203,7 @@ void statement()
 	case callsym:
 		getToken();
 		expect(identsym, 14);
-		// We can only call procedures (kind 3)
+		// Make sure that we only call procedures (kind 3)
 		sym = fetchSymbol(curToken.name);
 		if (!sym || sym->kind != 3)
 			throw(7);
@@ -238,7 +240,7 @@ void statement()
 	case readsym:
 		getToken();
 		expect(identsym, 14);
-		// We can only read input into variables (kind 2)
+		// Make sure to only read input into variables (kind 2)
 		sym = fetchSymbol(curToken.name);
 		if (!sym || sym->kind != 2)
 			throw(7);
@@ -247,7 +249,7 @@ void statement()
 	case writesym:
 		getToken();
 		expect(identsym, 2);
-		// We can't write procedures (kind 3) to the screen
+		// Make sure not to write procedures (kind 3) to the screen
 		sym = fetchSymbol(curToken.name);
 		if (!sym || sym->kind == 3)
 			throw(7);
@@ -265,7 +267,7 @@ void condition()
 	bool missing_condition = true;
 
 	// Checking if the current token can be the start of a condition
-	const token_type first[] = {oddsym, plussym, minussym, identsym,
+	static token_type first[] = {oddsym, plussym, minussym, identsym,
 		numbersym, lparentsym};
 	for (int i = 0; i < sizeof(first)/sizeof(*first); i++)
 		if (curToken.type == first[i])
@@ -421,9 +423,7 @@ bool conflictingSymbol(char *name)
 	return false;
 }
 
-// Marks symbols in the current level (scope).
-// Used when leaving a scope, such as when exiting a procedure.
-// Note: Should be called before decrementing the curLevel variable
+// Marks symbols in the current scope before we exit it
 void markSymbolsInScope() {
 	for (int i = sym_index - 1; i != -1; i--) {
 		if (table[i].mark == 1) // should only be true when marking main
