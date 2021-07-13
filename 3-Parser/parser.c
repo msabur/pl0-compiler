@@ -386,8 +386,8 @@ void addSymbol(char *name, int val, int type)
 		kind = prockind;
 
 	// Determine addr
-	if (kind == 3 || kind == 1) 
-		addr = 0; // for procedures and constants
+	if (kind == prockind || kind == constkind) 
+		addr = 0;
 	else if (table[sym_index - 1].addr == 0)
 		addr = 3; // first symbol has offset 3
 	else
