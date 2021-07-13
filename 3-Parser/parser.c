@@ -13,13 +13,23 @@
 #include <setjmp.h>
 #include "compiler.h"
 
-enum {constkind = 1, varkind = 2, prockind = 3};
-enum {op_const = 1<<1, op_var = 1<<2, op_proc = 1<<3};
+enum
+{
+	constkind = 1,
+	varkind = 2,
+	prockind = 3
+};
+enum
+{
+	op_const = 1 << 1,
+	op_var = 1 << 2,
+	op_proc = 1 << 3
+};
 
 /* Error management */
 int error;
 jmp_buf env;
-#define catch() setjmp(env)
+#define catch () setjmp(env)
 #define throw(value) longjmp(env, error = value)
 
 symbol *table;
@@ -35,7 +45,7 @@ void expect(int token_type, int err);
 void addSymbol(char *name, int val, int type);
 symbol *fetchSymbol(char *name, int kinds);
 void markSymbolsInScope();
-bool conflictingSymbol(char *name);
+bool conflictingSymbol(char *name, int kind);
 
 /* Parsing functions */
 void program(); // starting symbol
@@ -55,7 +65,7 @@ symbol *parse(lexeme *input)
 	table = malloc(1000 * sizeof(symbol));
 	list = input; // so we can access input from a global variable
 
-	if (catch() != 0)
+	if (catch () != 0)
 	{
 		// we jump here when an error is thrown
 		printErrorMessage(error);
@@ -64,7 +74,7 @@ symbol *parse(lexeme *input)
 	}
 	else
 	{
-		program(); // We begin parsing!
+		program();	  // We begin parsing!
 		printtable(); // print the symbol table
 		return table;
 	}
@@ -99,16 +109,17 @@ void const_declaration()
 	expect(identsym, 4);
 	ident = curToken;
 	getToken();
-	expect(becomessym, 5); 
+	expect(becomessym, 5);
 	getToken();
 	expect(numbersym, 5);
 	ident.value = curToken.value;
 
 	// TODO allow declaring constants with same name as procedures
-	
+
 	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name))
+	if (conflictingSymbol(ident.name, 1))
 		throw(1);
+	
 	addSymbol(ident.name, ident.value, constsym);
 
 	getToken();
@@ -123,7 +134,7 @@ void const_declaration()
 	{
 		expect(semicolonsym, 6); // need ; at end of declaration
 		getToken();
-	}	
+	}
 }
 
 void var_declaration()
@@ -135,9 +146,9 @@ void var_declaration()
 	ident = curToken;
 
 	// TODO allow declaring variables with same name as procedures
-	
+
 	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name))
+	if (conflictingSymbol(ident.name, 2))
 		throw(1);
 	addSymbol(ident.name, 0, varsym);
 
@@ -164,11 +175,11 @@ void procedure_declaration()
 	getToken();
 	expect(identsym, 4);
 	ident = curToken;
-	
+
 	// TODO allow declaring procedures with same name as consts, vars
-	
+
 	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name))
+	if (conflictingSymbol(ident.name, 3))
 		throw(1);
 	addSymbol(ident.name, 0, procsym);
 
@@ -180,7 +191,7 @@ void procedure_declaration()
 	curLevel++;
 
 	// Parse the body of the procedure
-	block(); 
+	block();
 
 	// Make sure the procedure's local variables can't be used outside
 	markSymbolsInScope();
@@ -273,8 +284,8 @@ void condition()
 
 	// Checking if the current token can be the start of a condition
 	token_type first[] = {oddsym, plussym, minussym, identsym,
-		numbersym, lparentsym};
-	for (int i = 0; i < sizeof(first)/sizeof(*first); i++)
+						  numbersym, lparentsym};
+	for (int i = 0; i < sizeof(first) / sizeof(*first); i++)
 		if (curToken.type == first[i])
 			missing_condition = false;
 	if (missing_condition)
@@ -285,7 +296,8 @@ void condition()
 		getToken();
 		expression();
 	}
-	else {
+	else
+	{
 		expression();
 		// Here we throw an error if there is no relational operator.
 		// The relational operators are from eqlsym to geqsym
@@ -311,9 +323,7 @@ void expression()
 void term()
 {
 	factor();
-	while (curToken.type == multsym
-			|| curToken.type == slashsym
-			|| curToken.type == modsym)
+	while (curToken.type == multsym || curToken.type == slashsym || curToken.type == modsym)
 	{
 		getToken();
 		factor();
@@ -350,17 +360,18 @@ void factor()
 		 */
 		fprintf(stderr, "Here we are!");
 	}
-
 }
 
 // Throws an error if the current token isn't of the expected type
-void expect(int token_type, int err) {
-	if(curToken.type != token_type)
+void expect(int token_type, int err)
+{
+	if (curToken.type != token_type)
 		throw(err);
 }
 
 // Fetches the next token and assigns it to the global variable curToken
-void getToken() {
+void getToken()
+{
 	static int tokenIndex = 0;
 	curToken = list[tokenIndex++];
 }
@@ -386,7 +397,7 @@ void addSymbol(char *name, int val, int type)
 		kind = prockind;
 
 	// Determine addr
-	if (kind == prockind || kind == constkind) 
+	if (kind == prockind || kind == constkind)
 		addr = 0;
 	else if (table[sym_index - 1].addr == 0)
 		addr = 3; // first symbol has offset 3
@@ -425,21 +436,59 @@ symbol *fetchSymbol(char *name, int kinds)
 }
 
 // Checks if a symbol was already declared in the current scope
-bool conflictingSymbol(char *name)
+bool conflictingSymbol(char *name, int kind)
 {
-	for (int i = sym_index - 1; i != -1; i--)
+	int i;
+	// Switch for checking if it's a const, var, or proc
+	switch (kind)
 	{
-		if (table[i].level != curLevel)
-			break;
-		if (strcmp(table[i].name, name) == 0)
-			return true;
+	case 1: // Constant
+	case 2: // Variable
+		// Run through the table
+		for (i = sym_index - 1; i != -1; i--)
+		{
+			// Only entries on our current level are valid
+			if (table[i].level != curLevel)
+				break;
+
+			// If it has the same name and kind == 1 or 2
+			if (strcmp(table[i].name, name) == 0 && kind == 1)
+				// Then yes, it conflicts
+				return 1;
+			else if (strcmp(table[i].name, name) == 0 && kind == 2)
+				// Then yes, it conflicts
+				return true;
+		}
+		break;
+
+	case 3: // Procedure
+		// Run through the table
+		for (i = sym_index - 1; i != -1; i--)
+		{
+			// Only entries on our current level are valid
+			if (table[i].level != curLevel)
+				break;
+
+			// If it has the same name and kind == 3
+			if ((strcmp(table[i].name, name) == 0) && kind == 3)
+				// Then yes, it conflicts
+				return true;
+		}
+		break;
+
+	default:
+		break;
 	}
+
+	// If it reaches here, it never conflicted, so return false (0)
 	return false;
 }
 
 // Marks symbols in the current scope before we exit it
-void markSymbolsInScope() {
-	for (int i = sym_index - 1; i != -1; i--) {
+void markSymbolsInScope()
+{
+	for (int i = sym_index - 1; i != -1; i--)
+	{
 		if (table[i].mark == 1) // should only be true when marking main
 			continue;
 		if (table[i].level != curLevel) // done marking the current scope
@@ -450,29 +499,27 @@ void markSymbolsInScope() {
 
 void printErrorMessage(int x)
 {
-	const char *errors[] = 
-	{
-		[ 1] = "Competing Symbol Declarations",
-		[ 2] = "Unrecognized Statement Form",
-		[ 3] = "Programs Must Close with a Period",
-		[ 4] = "Symbols Must Be Declared with an Identifier",
-		[ 5] = "Constants Must Be Assigned a Value at Declaration",
-		[ 6] = "Symbol Declarations Must Be Followed By a Semicolon",
-		[ 7] = "Undeclared Symbol",
-		[ 8] = "while Must Be Followed By do",
-		[ 9] = "if Must Be Followed By then",
-		[10] = "begin Must Be Followed By end",
-		[11] = "while and if Statements Must Contain Conditions",
-		[12] = "Conditions Must Contain a Relational-Operator",
-		[13] = "( Must Be Followed By )",
-		[14] = "call and read Must Be Followed By an Identifier"
-	};
+	const char *errors[] =
+		{
+			[1] = "Competing Symbol Declarations",
+			[2] = "Unrecognized Statement Form",
+			[3] = "Programs Must Close with a Period",
+			[4] = "Symbols Must Be Declared with an Identifier",
+			[5] = "Constants Must Be Assigned a Value at Declaration",
+			[6] = "Symbol Declarations Must Be Followed By a Semicolon",
+			[7] = "Undeclared Symbol",
+			[8] = "while Must Be Followed By do",
+			[9] = "if Must Be Followed By then",
+			[10] = "begin Must Be Followed By end",
+			[11] = "while and if Statements Must Contain Conditions",
+			[12] = "Conditions Must Contain a Relational-Operator",
+			[13] = "( Must Be Followed By )",
+			[14] = "call and read Must Be Followed By an Identifier"};
 
 	if (x < 1 || x > 14)
 		printf("Implementation Error: Unrecognized Error Code\n");
 	else
 		printf("Parser Error: %s\n", errors[x]);
-
 }
 
 void printtable()
@@ -482,5 +529,5 @@ void printtable()
 	printf("Kind | Name        | Value | Level | Address\n");
 	printf("--------------------------------------------\n");
 	for (i = 0; i < sym_index; i++)
-		printf("%4d | %11s | %5d | %5d | %5d\n", table[i].kind, table[i].name, table[i].val, table[i].level, table[i].addr); 
+		printf("%4d | %11s | %5d | %5d | %5d\n", table[i].kind, table[i].name, table[i].val, table[i].level, table[i].addr);
 }
