@@ -13,6 +13,8 @@
 #include <setjmp.h>
 #include "compiler.h"
 
+enum {constkind = 1, varkind = 2, prockind = 3};
+
 /* Error management */
 int error;
 jmp_buf env;
@@ -26,9 +28,9 @@ int curLevel; // tracks our lexicographical level
 
 /* Utilities */
 void printtable();
-void errorend(int x);
+void printErrorMessage(int x);
 void getToken();
-void expect(int token_type, int err); // expect a given kind of token
+void expect(int token_type, int err);
 void addSymbol(char *name, int val, int type);
 symbol *fetchSymbol(char *name);
 void markSymbolsInScope();
@@ -55,7 +57,7 @@ symbol *parse(lexeme *input)
 	if (catch() != 0)
 	{
 		// we jump here when an error is thrown
-		errorend(error);
+		printErrorMessage(error);
 		free(table);
 		return NULL;
 	}
@@ -263,11 +265,10 @@ void statement()
 void condition()
 {
 	// We should throw an error when a condition is missing
-
 	bool missing_condition = true;
 
 	// Checking if the current token can be the start of a condition
-	static token_type first[] = {oddsym, plussym, minussym, identsym,
+	token_type first[] = {oddsym, plussym, minussym, identsym,
 		numbersym, lparentsym};
 	for (int i = 0; i < sizeof(first)/sizeof(*first); i++)
 		if (curToken.type == first[i])
@@ -373,11 +374,11 @@ void addSymbol(char *name, int val, int type)
 
 	// Determine kind
 	if (type == constsym)
-		kind = 1;
+		kind = constkind;
 	else if (type == varsym)
-		kind = 2;
-	else // procedures
-		kind = 3;
+		kind = varkind;
+	else
+		kind = prockind;
 
 	// Determine addr
 	if (kind == 3 || kind == 1) 
@@ -434,7 +435,7 @@ void markSymbolsInScope() {
 	}
 }
 
-void errorend(int x)
+void printErrorMessage(int x)
 {
 	// Misspellings are from the provided skeleton
 	const char *errors[] = 
