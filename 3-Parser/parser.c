@@ -437,7 +437,6 @@ void markSymbolsInScope() {
 
 void printErrorMessage(int x)
 {
-	// Misspellings are from the provided skeleton
 	const char *errors[] = 
 	{
 		[ 1] = "Competing Symbol Declarations",
@@ -453,7 +452,7 @@ void printErrorMessage(int x)
 		[11] = "while and if Statements Must Contain Conditions",
 		[12] = "Conditions Must Contain a Relational-Operator",
 		[13] = "( Must Be Followed By )",
-		[14] = "call and read Must Be Followed By an Identifien"
+		[14] = "call and read Must Be Followed By an Identifier"
 	};
 
 	if (x < 1 || x > 14)
