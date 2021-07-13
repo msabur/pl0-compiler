@@ -14,6 +14,7 @@
 #include "compiler.h"
 
 enum {constkind = 1, varkind = 2, prockind = 3};
+enum {op_const = 1<<1, op_var = 1<<2, op_proc = 1<<3};
 
 /* Error management */
 int error;
@@ -32,7 +33,7 @@ void printErrorMessage(int x);
 void getToken();
 void expect(int token_type, int err);
 void addSymbol(char *name, int val, int type);
-symbol *fetchSymbol(char *name);
+symbol *fetchSymbol(char *name, int kinds);
 void markSymbolsInScope();
 bool conflictingSymbol(char *name);
 
@@ -84,7 +85,7 @@ void block()
 		const_declaration();
 	if (curToken.type == varsym)
 		var_declaration();
-	if (curToken.type == procsym)
+	while (curToken.type == procsym)
 		procedure_declaration();
 
 	statement();
@@ -103,6 +104,8 @@ void const_declaration()
 	expect(numbersym, 5);
 	ident.value = curToken.value;
 
+	// TODO allow declaring constants with same name as procedures
+	
 	// We add it to the symbol table only if it wasn't already there
 	if (conflictingSymbol(ident.name))
 		throw(1);
@@ -131,6 +134,8 @@ void var_declaration()
 	expect(identsym, 4);
 	ident = curToken;
 
+	// TODO allow declaring variables with same name as procedures
+	
 	// We add it to the symbol table only if it wasn't already there
 	if (conflictingSymbol(ident.name))
 		throw(1);
@@ -154,37 +159,36 @@ void var_declaration()
 
 void procedure_declaration()
 {
-	while (curToken.type == procsym)
-	{
-		// Gather information about the procedure
-		lexeme ident;
-		getToken();
-		expect(identsym, 4);
-		ident = curToken;
+	// Gather information about the procedure
+	lexeme ident;
+	getToken();
+	expect(identsym, 4);
+	ident = curToken;
+	
+	// TODO allow declaring procedures with same name as consts, vars
+	
+	// We add it to the symbol table only if it wasn't already there
+	if (conflictingSymbol(ident.name))
+		throw(1);
+	addSymbol(ident.name, 0, procsym);
 
-		// We add it to the symbol table only if it wasn't already there
-		if (conflictingSymbol(ident.name))
-			throw(1);
-		addSymbol(ident.name, 0, procsym);
+	getToken();
+	expect(semicolonsym, 6); // need ';' at end of declaration
+	getToken();
 
-		getToken();
-		expect(semicolonsym, 6); // need ';' at end of declaration
-		getToken();
+	// A procedure's body is its own scope. We track that with curLevel
+	curLevel++;
 
-		// A procedure's body is its own scope. We track that with curLevel
-		curLevel++;
+	// Parse the body of the procedure
+	block(); 
 
-		// Parse the body of the procedure
-		block(); 
+	// Make sure the procedure's local variables can't be used outside
+	markSymbolsInScope();
 
-		// Make sure the procedure's local variables can't be used outside
-		markSymbolsInScope();
+	curLevel--;
 
-		curLevel--;
-
-		expect(semicolonsym, 6); // TODO make sure this is the right error
-		getToken();
-	}
+	expect(semicolonsym, 6); // TODO make sure this is the right error
+	getToken();
 }
 
 void statement()
@@ -193,9 +197,9 @@ void statement()
 	switch (curToken.type)
 	{
 	case identsym:
-		// Make sure that we only assign to variables (kind 2)
-		sym = fetchSymbol(curToken.name);
-		if (!sym || sym->kind != 2)
+		// Make sure that we only assign to variables
+		sym = fetchSymbol(curToken.name, op_var);
+		if (!sym)
 			throw(7);
 		getToken();
 		expect(becomessym, 2);
@@ -205,9 +209,9 @@ void statement()
 	case callsym:
 		getToken();
 		expect(identsym, 14);
-		// Make sure that we only call procedures (kind 3)
-		sym = fetchSymbol(curToken.name);
-		if (!sym || sym->kind != 3)
+		// Make sure that we only call procedures
+		sym = fetchSymbol(curToken.name, op_proc);
+		if (!sym)
 			throw(7);
 		getToken();
 		break;
@@ -242,18 +246,18 @@ void statement()
 	case readsym:
 		getToken();
 		expect(identsym, 14);
-		// Make sure to only read input into variables (kind 2)
-		sym = fetchSymbol(curToken.name);
-		if (!sym || sym->kind != 2)
+		// Make sure to only read input into variables
+		sym = fetchSymbol(curToken.name, op_var);
+		if (!sym)
 			throw(7);
 		getToken();
 		break;
 	case writesym:
 		getToken();
 		expect(identsym, 2);
-		// Make sure not to write procedures (kind 3) to the screen
-		sym = fetchSymbol(curToken.name);
-		if (!sym || sym->kind == 3)
+		// Make sure to only write constants or variables to the screen
+		sym = fetchSymbol(curToken.name, op_const | op_var);
+		if (!sym)
 			throw(7);
 		getToken();
 		break;
@@ -320,9 +324,9 @@ void factor()
 {
 	if (curToken.type == identsym)
 	{
-		// A procedure name can't be part of an arithmetic expression
-		symbol *sym = fetchSymbol(curToken.name);
-		if (!sym || sym->kind == 3)
+		// Only consts and vars are allowed in arithmetic expressions
+		symbol *sym = fetchSymbol(curToken.name, op_const | op_var);
+		if (!sym)
 			throw(7);
 		getToken();
 	}
@@ -344,6 +348,7 @@ void factor()
 		 * The recitation slide throws 'identifier, (, or number expected',
 		 * but that doesn't match any of the errors in the instructions.
 		 */
+		fprintf(stderr, "Here we are!");
 	}
 
 }
@@ -400,12 +405,20 @@ void addSymbol(char *name, int val, int type)
 	++sym_index;
 }
 
-// Returns the requested symbol, or NULL if it's not found
-symbol *fetchSymbol(char *name)
+// Returns the requested symbol, or NULL if it's not found.
+// The options parameter tells the kind of symbol to fetch.
+// If multiple results are found, the first one is returned.
+symbol *fetchSymbol(char *name, int kinds)
 {
 	for (int i = sym_index - 1; i != -1; i--)
 	{
-		if (strcmp(table[i].name, name) == 0 && table[i].mark == 0)
+		// ignore marked symbols
+		if (table[i].mark)
+			continue;
+		// ignore symbols whose names don't match what we want
+		if (strcmp(table[i].name, name) != 0)
+			continue;
+		if (kinds & (1 << table[i].kind))
 			return &table[i];
 	}
 	return NULL;
