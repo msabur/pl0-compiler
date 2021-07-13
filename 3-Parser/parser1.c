@@ -123,10 +123,6 @@ void mark_symbols()
 	while (table[i].kind != 3)
 		i--;
 
-	// Incease i once so we're at the first symbol after the
-	// procedure entry in the table
-	i++;
-
 	// Mark every symbol in the procedure
 	while (i != sym_index)
 	{
