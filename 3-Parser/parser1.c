@@ -662,7 +662,6 @@ void errorend(int x)
 	// Set error to 1
 	error = 1;
 
-	free(table);
 	return NULL;
 }
 
