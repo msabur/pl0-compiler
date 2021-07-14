@@ -13,6 +13,14 @@
 #include "compiler.h"
 
 
+enum
+{
+	op_const = 1 << 1,
+	op_var = 1 << 2,
+	op_proc = 1 << 3
+};
+
+
 symbol *table, *sym;
 symbol *fetch_symbol(char *name, int kind);
 lexeme *list, token, const_token;
@@ -51,20 +59,23 @@ void term();
 void factor();
 
 
-/* Returns NULL if the symbol isn't found */
-symbol *fetch_symbol(char *name, int kind)
+/* Returns the requested symbol, or NULL if it's not found.
+ * The options parameter tells the kind of symbol to fetch.
+ * If multiple results are found, the first one is returned.
+ */
+symbol *fetchSymbol(char *name, int kinds)
 {
 	for (int i = sym_index - 1; i != -1; i--)
 	{
 		// Ignore marked symbols
-		if (!table[i].mark)
+		if (table[i].mark)
 			continue;
-		
+
 		// Ignore symbols whose names don't match what we want
 		if (strcmp(table[i].name, name) != 0)
 			continue;
-		
-		if (kind & (1 << table[i].kind))
+
+		if (kinds & (1 << table[i].kind))
 			return &table[i];
 	}
 	return NULL;
@@ -93,9 +104,11 @@ void address_checker(int kind)
 	// For procedures and constants
 	if (kind == 3 || kind == 1)
 		address = 0;
+	
 	// Checks to see if the previous address value is a 0.
 	else if (table[sym_index - 1].addr == 0)
 		address = 3;
+	
 	// If it's not a procedure or a constant and comes after a
 	// another variable, then we add one to the previous address
 	// and store it.
@@ -116,6 +129,7 @@ void is_valid(int token_type, int error_type)
 int conflicting_symbol(char *name, int kind)
 {
 	int i;
+
 	// Switch for checking if it's a const, var, or proc
 	switch (kind)
 	{
@@ -181,15 +195,19 @@ void get_token()
 /* Marks the symbols in a procedure */
 void mark_symbols()
 {
-	int i = sym_index;
+	for (int i = sym_index - 1; i != -1; i--)
+	{
+		// Should only be true when marking main
+		if (table[i].mark == 1)
+			continue;
 
-	// Decrease i until we're at the start of the procedure
-	while (table[i].kind != 3)
-		i--;
+		// If it's done marking the current scope, break
+		if (table[i].level != level)
+			break;
 
-	// Mark every symbol in the procedure
-	while (i != sym_index)
-		table[i++].mark = 1;
+		// Mark the current symbol
+		table[i].mark = 1;
+	}
 }
 
 
@@ -226,18 +244,20 @@ void block()
 }
 
 
-/* Create a constant */
+/* Process a constant */
 void const_declaration()
 {
 	do
 	{
 		// This token should have the constant name in it
 		get_token();
-		const_token = token;
 
 		// If there's no name, throw an error
 		// Symbols Must Be Declared with an Identifier
 		is_valid(identsym, 4);
+
+		// Load the constant name into const_token
+		const_token = token;
 
 		// This token should have the := in it
 		get_token();
@@ -249,12 +269,12 @@ void const_declaration()
 		// This token should have the value of the constant in it
 		get_token();
 
-		// Change the value of const_token to be the value it's supposed to be
-		const_token.value = token.value;
-
 		// Make sure there's a number it's being set equal to
 		// Constants Must Be Assigned a Value at Declaration
 		is_valid(numbersym, 5);
+
+		// Load the constant value into the const_token
+		const_token.value = token.value;
 
 		// Check for conflicting symbols
 		// Parser Error: Competing Symbol Declarations
@@ -280,7 +300,7 @@ void const_declaration()
 }
 
 
-/* Create a procedure */
+/* Process a variable */
 void var_declaration()
 {
 	do
@@ -318,8 +338,7 @@ void var_declaration()
 }
 
 
-/* Create a procedure */
-// NOTE: Something in here is borked
+/* Process a procedure */
 void procedure_declaration()
 {
 	do
@@ -371,93 +390,158 @@ void procedure_declaration()
 }
 
 
-/* Create a statement */
+/* Process a statement */
 void statement()
 {
 	switch (token.type)
 	{
 	case identsym:
+		// Make sure that we only assign to variables
+		sym = fetchSymbol(token.name, op_var);
+
+		// If it's not a variables, throw an error
+		// Parser Error: Undeclared Symbol
+		if (!sym)
+			errorend(7);
+
+		// This should hold :=
 		get_token();
 
-		// Make sure that after the variable is the becomes symbol
 		// Unrecognized Statement Form
 		is_valid(becomessym, 2);
 
+		// This should hold the first item in the expression
 		get_token();
+
+		// Process the expression
 		expression();
+
+		// Parser Error: Unrecognized Statement Form
+		if (token.type == lparentsym)
+			errorend(2);
 		break;
 
 	case callsym:
+		// This should hold the name of a procedure
 		get_token();
 
-		// Make sure that after call is the name of the procedure
 		// call and read Must Be Followed By an Identifien
 		is_valid(identsym, 14);
 
+		// Make sure that we only call procedures
+		sym = fetchSymbol(token.name, op_proc);
+
+		// If it's not a procedure, throw an error
+		// Parser Error: Undeclared Symbol
+		if (!sym)
+			errorend(7);
+
+		// Move onto the next token to be processed
 		get_token();
 		break;
 
 	case beginsym:
 		do
 		{
+			// Get the first token of the statement; should be
+			// the variable whose value is being changed.
 			get_token();
+
+			// Process the statement
 			statement();
+
+			// Process all statements in the procedure
 		} while (token.type == semicolonsym);
 
-		// Procedure must end with end
+		// Make sure the procedure ends with end
 		// begin Must Be Followed By end
 		is_valid(endsym, 10);
 
+		// Move onto the next token to be processed
 		get_token();
 		break;
 
 	case ifsym:
+		// Get the first token of the condition to be processed
 		get_token();
+
+		// Process the condition
 		condition();
 
+		// Make sure the next symbol is then
 		// if Must Be Followed By then
 		is_valid(thensym, 9);
 
+		// Get the first symbol of the statement inside the if
 		get_token();
+
+		// Process the statement
 		statement();
+
+		// If there's an else...
+		if (token.type == elsesym)
+		{
+			// Get the first token of the statement
+			get_token();
+
+			// Process the statement
+			statement();
+		}
 		break;
 
 	case whilesym:
+		// Get the first token of the condition
 		get_token();
+
+		// Process the condition
 		condition();
 
+		// Make sure the next symbol is do
 		// while Must Be Followed By do
 		is_valid(dosym, 8);
 
+		// Get the first symbol of the statement inside the while
 		get_token();
+
+		// Process the statement
 		statement();
 		break;
 
 	case readsym:
+		// This should have an identity in it
 		get_token();
 
 		// call and read Must Be Followed By an Identifien
 		is_valid(identsym, 14);
 
-		sym = fetch_symbol(token.name, 4);
+		// Make sure to only read input into variables
+		sym = fetchSymbol(token.name, op_var);
 
-		if (!sym || sym->kind != 2)
+		// Make sure we're reading a variable
+		// Parser Error: Undeclared Symbol
+		if (!sym)
 			errorend(7);
 
+		// Get the next token to be processed
 		get_token();
 		break;
 
 	case writesym:
+		// This should have an identity in it
 		get_token();
 
-		// Unrecognized Statement Form
+		// Parser Error: Unrecognized Statement Form
 		is_valid(identsym, 2);
 
-		sym = fetch_symbol(token.name, 2 | 4);
+		// Make sure to only write constants or variables to the screen
+		sym = fetchSymbol(token.name, op_const | op_var);
 
-		if (!sym || (sym->kind != 2 && sym->kind != 1))
+		// Make sure we're writing a constant or a variable
+		// Parser Error: Undeclared Symbol
+		if (!sym)
 			errorend(7);
 
+		// Get the next token to be processed
 		get_token();
 		break;
 
@@ -467,16 +551,20 @@ void statement()
 }
 
 
-/* Formulas */
+/* Process a formula */
 void condition()
 {
 	if (token.type == oddsym)
 	{
+		// Get the first token of the expression
 		get_token();
+
+		// Process the expression
 		expression();
 	}
 	else
 	{
+		// Process the expression
 		expression();
 
 		// Make sure it's a relation. If it isn't, throw an error
@@ -484,7 +572,10 @@ void condition()
 		if (!rel_op())
 			errorend(12);
 
+		// Get the first token of the expression
 		get_token();
+
+		// Process the expression
 		expression();
 	}
 }
@@ -512,14 +603,18 @@ int rel_op()
 }
 
 
-/* Add an expression */
+/* Process plus and/or minus */
 void expression()
 {
+	// If it's a plus or minus, move to the next token
 	if (token.type == plussym || token.type == minussym)
 		get_token();
 
+	// Process the term
 	term();
 
+	// As long as there's another plus or minus, keep processing
+	// the expression
 	while (token.type == plussym || token.type == minussym)
 	{
 		get_token();
@@ -528,11 +623,13 @@ void expression()
 }
 
 
-/* Multiplication, Division, and Modulus */
+/* Process multiplication, division, and/or modulus */
 void term()
 {
+	// Process the factor
 	factor();
 
+	// As long as the current token is * / or %, keep processing
 	while (token.type == multsym || token.type == slashsym || token.type == modsym)
 	{
 		get_token();
@@ -541,7 +638,7 @@ void term()
 }
 
 
-/* Factor Checker */
+/* Process the factor */
 void factor()
 {
 	switch (token.type)
