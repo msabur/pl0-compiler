@@ -13,19 +13,11 @@
 #include <setjmp.h>
 #include "compiler.h"
 
-enum
-{
-	constkind = 1,
-	varkind = 2,
-	prockind = 3
-};
-
-enum
-{
-	op_const = 1 << 1,
-	op_var = 1 << 2,
-	op_proc = 1 << 3
-};
+/* Constants */
+// Symbol types
+const int constkind = 1, varkind = 2, prockind = 3;
+// Options for symbol table lookups
+const int op_const = 1 << 1, op_var = 1 << 2, op_proc = 1 << 3;
 
 /* Error management */
 int error;
@@ -48,7 +40,7 @@ void printtable();
 void printErrorMessage(int x);
 void getToken();
 void expect(int token_type, int err);
-void addSymbol(char *name, int val, int type);
+void addSymbol(char *name, int val, int kind, int address);
 symbol *fetchSymbol(char *name, int kinds);
 void markSymbolsInScope();
 bool conflictingSymbol(char *name, int kind);
@@ -95,7 +87,7 @@ symbol *parse(lexeme *input)
 void program()
 {
 	// Load main into the symbol table
-	addSymbol("main", 0, procsym);
+	addSymbol("main", 0, prockind, 0);
 
 	// Get the first token of the program
 	getToken();
@@ -161,7 +153,7 @@ void const_declaration()
 		throw(1);
 	
 	// Add the constant to the symbol table
-	addSymbol(ident.name, ident.value, constsym);
+	addSymbol(ident.name, ident.value, constkind, 0);
 
 	// Get the next token
 	getToken();
@@ -183,37 +175,37 @@ void const_declaration()
 /* Process a constant */
 void var_declaration()
 {
-	// Use ident to hold the name and value of the variable
-	lexeme ident;
+	int numVars = 0;
+	do {
+		// Use ident to hold the name and value of the variable
+		lexeme ident;
 
-	// This token should hold the name of the variable
-	getToken();
-
-	// Symbols Must Be Declared with an Identifier
-	expect(identsym, 4);
-
-	// Fill ident with the variable's token information
-	ident = token;
-
-	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name, 2))
-		throw(1);
-
-	// Add the variable to the symbol table	
-	addSymbol(ident.name, 0, varsym);
-
-	// Get the next token to check it
-	getToken();
-
-	// If we see a comma, we have to parse another declaration
-	if (token.type == commasym)
-		var_declaration();
-	// Otherwise we need semicolon to mark the end of the declaration
-	else
-	{
-		expect(semicolonsym, 6); // need ; at end of declaration
+		// This token should hold the name of the variable
 		getToken();
-	}
+
+		// Symbols Must Be Declared with an Identifier
+		expect(identsym, 4);
+
+		// Fill ident with the variable's token information
+		ident = token;
+
+		// We add it to the symbol table only if it wasn't already there
+		if (conflictingSymbol(ident.name, varkind))
+			throw(1);
+
+		// Add the variable to the symbol table	
+		addSymbol(ident.name, 0, varkind, numVars + 3);
+		numVars++;
+
+		// Get the next token to check it
+		getToken();
+
+		// If we see a comma, we have to parse another declaration
+	} while (token.type == commasym);
+
+	// Otherwise we need semicolon to mark the end of the declaration
+	expect(semicolonsym, 6); // need ; at end of declaration
+	getToken();
 }
 
 /* Process a procedure */
@@ -232,11 +224,11 @@ void procedure_declaration()
 	ident = token;
 
 	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name, 3))
+	if (conflictingSymbol(ident.name, prockind))
 		throw(1);
 	
 	// Add the procedure to the symbol table
-	addSymbol(ident.name, 0, procsym);
+	addSymbol(ident.name, 0, prockind, 0);
 
 	// This token should have a semicolon in it
 	getToken();
@@ -432,21 +424,6 @@ void statement()
 /* Process a formula */
 void condition()
 {
-	// We should throw an error when a condition is missing
-	bool missing_condition = true;
-
-	// Symbosl that can be the start of a condition
-	token_type first[] = {oddsym, plussym, minussym, identsym, numbersym, lparentsym};
-
-	// Checking if the current token can be the start of a condition
-	for (int i = 0; i < sizeof(first) / sizeof(*first); i++)
-		if (token.type == first[i])
-			missing_condition = false;
-	
-	// If not, then throw an error
-	if (missing_condition)
-		throw(11);
-
 	if (token.type == oddsym)
 	{
 		// Get the first token of the expression
@@ -462,8 +439,6 @@ void condition()
 
 		// Here we throw an error if there is no relational operator.
 		// The relational operators are from eqlsym to geqsym
-		// Frankly, this is overkill, since the previous checker will have
-		// caught any invalid symbols.
 		// Conditions Must Contain a Relational-Operator
 		if (token.type < eqlsym || token.type > geqsym)
 			throw(12);
@@ -547,12 +522,8 @@ void factor()
 	}
 	else
 	{
-		/*
-		 * Not sure whether to throw an error here.
-		 * The recitation slide throws 'identifier, (, or number expected',
-		 * but that doesn't match any of the errors in the instructions.
-		 */
-		fprintf(stderr, "Here we are!");
+		// We get here when an if/while statement is missing a condition
+		throw(11);
 	}
 }
 
@@ -571,27 +542,9 @@ void getToken()
 }
 
 /* Adds a symbol to the symbol table */
-void addSymbol(char *name, int val, int type)
+void addSymbol(char *name, int val, int kind, int address)
 {
-	int kind, address;
-
-	// Determine kind
-	if (type == constsym)
-		kind = constkind;
-	else if (type == varsym)
-		kind = varkind;
-	else
-		kind = prockind;
-
-	// Determine address
-	if (kind == prockind || kind == constkind)
-		address = 0;
-	else if (table[sym_index - 1].addr == 0)
-		address = 3; // first symbol has offset 3
-	else
-		address = table[sym_index - 1].addr + 1; // for normal variables
-
-	// Now, we add this symbol to the table
+	// Adding this symbol to the table
 	table[sym_index].addr = address;
 	table[sym_index].kind = kind;
 	table[sym_index].val = val;
@@ -619,6 +572,7 @@ symbol *fetchSymbol(char *name, int kinds)
 		if (strcmp(table[i].name, name) != 0)
 			continue;
 		
+		// If the current symbol is of a requested kind, return it
 		if (kinds & (1 << table[i].kind))
 			return &table[i];
 	}
