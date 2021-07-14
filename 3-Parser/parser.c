@@ -13,18 +13,11 @@
 #include <setjmp.h>
 #include "compiler.h"
 
-enum
-{
-	constkind = 1,
-	varkind = 2,
-	prockind = 3
-};
-enum
-{
-	op_const = 1 << 1,
-	op_var = 1 << 2,
-	op_proc = 1 << 3
-};
+/* Constants */
+// Symbol types
+const int constkind = 1, varkind = 2, prockind = 3;
+// Options for symbol table lookups 
+const int o_const = 1<<1, o_var = 1<<2, o_proc = 1<<3;
 
 /* Error management */
 int error;
@@ -34,7 +27,7 @@ jmp_buf env;
 
 symbol *table;
 int sym_index;
-lexeme curToken, *list;
+lexeme token, *list;
 int curLevel; // tracks our lexicographical level
 
 /* Utilities */
@@ -42,7 +35,7 @@ void printtable();
 void printErrorMessage(int x);
 void getToken();
 void expect(int token_type, int err);
-void addSymbol(char *name, int val, int type);
+void addSymbol(char *name, int val, int kind, int addr);
 symbol *fetchSymbol(char *name, int kinds);
 void markSymbolsInScope();
 bool conflictingSymbol(char *name, int kind);
@@ -67,7 +60,7 @@ symbol *parse(lexeme *input)
 
 	if (catch() != 0)
 	{
-		// we jump here when an error is thrown
+		// We jump here when an error is thrown
 		printErrorMessage(error);
 		free(table);
 		return NULL;
@@ -75,7 +68,7 @@ symbol *parse(lexeme *input)
 	else
 	{
 		program();	  // We begin parsing!
-		printtable(); // print the symbol table
+		printtable(); // Print the symbol table
 		return table;
 	}
 }
@@ -83,7 +76,7 @@ symbol *parse(lexeme *input)
 void program()
 {
 	// the main procedure is always the first item in our symbol table
-	addSymbol("main", 0, procsym);
+	addSymbol("main", 0, prockind, 0);
 	getToken();
 	block();
 	expect(periodsym, 3);
@@ -91,11 +84,11 @@ void program()
 
 void block()
 {
-	if (curToken.type == constsym)
+	if (token.type == constsym)
 		const_declaration();
-	if (curToken.type == varsym)
+	if (token.type == varsym)
 		var_declaration();
-	while (curToken.type == procsym)
+	while (token.type == procsym)
 		procedure_declaration();
 
 	statement();
@@ -103,29 +96,30 @@ void block()
 
 void const_declaration()
 {
-	// Gather information about the constant
+	// Find the name of the constant
 	lexeme ident;
 	getToken();
 	expect(identsym, 4);
-	ident = curToken;
+	ident = token;
+	
+	// Check if adding it to the symbol table will cause a conflict
+	if (conflictingSymbol(ident.name, constkind))
+		throw(1);
+
+	// Find the value of the constant
 	getToken();
 	expect(becomessym, 5);
 	getToken();
 	expect(numbersym, 5);
-	ident.value = curToken.value;
+	ident.value = token.value;
 
-	// TODO allow declaring constants with same name as procedures
-
-	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name, 1))
-		throw(1);
 	
-	addSymbol(ident.name, ident.value, constsym);
+	addSymbol(ident.name, ident.value, constkind, 0);
 
 	getToken();
 
 	// If we see a comma, we have to parse another declaration
-	if (curToken.type == commasym)
+	if (token.type == commasym)
 	{
 		const_declaration();
 	}
@@ -139,49 +133,42 @@ void const_declaration()
 
 void var_declaration()
 {
-	// Gather information about the variable
-	lexeme ident;
-	getToken();
-	expect(identsym, 4);
-	ident = curToken;
+	int numVars = 0;
+	do {
+		// Find the name of the variable
+		lexeme ident;
+		getToken();
+		expect(identsym, 4);
+		ident = token;
 
-	// TODO allow declaring variables with same name as procedures
+		// Check if adding it to the symbol table will cause a conflict
+		if (conflictingSymbol(ident.name, varkind))
+			throw(1);
+		addSymbol(ident.name, 0, varkind, numVars + 3);
+		numVars++;
 
-	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name, 2))
-		throw(1);
-	addSymbol(ident.name, 0, varsym);
+		getToken();
 
-	getToken();
-
-	// If we see a comma, we have to parse another declaration
-	if (curToken.type == commasym)
-	{
-		var_declaration();
-	}
+		// If we see a comma, we have to parse another declaration
+	} while (token.type == commasym);
 
 	// Otherwise we need semicolon to mark the end of the declaration
-	else
-	{
-		expect(semicolonsym, 6); // need ; at end of declaration
-		getToken();
-	}
+	expect(semicolonsym, 6); // need ; at end of declaration
+	getToken();
 }
 
 void procedure_declaration()
 {
-	// Gather information about the procedure
+	// Find the name of the procedure
 	lexeme ident;
 	getToken();
 	expect(identsym, 4);
-	ident = curToken;
+	ident = token;
 
-	// TODO allow declaring procedures with same name as consts, vars
-
-	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name, 3))
+	// Check if adding it to the symbol table will cause a conflict
+	if (conflictingSymbol(ident.name, prockind))
 		throw(1);
-	addSymbol(ident.name, 0, procsym);
+	addSymbol(ident.name, 0, prockind, 0);
 
 	getToken();
 	expect(semicolonsym, 6); // need ';' at end of declaration
@@ -198,18 +185,18 @@ void procedure_declaration()
 
 	curLevel--;
 
-	expect(semicolonsym, 6); // TODO make sure this is the right error
+	expect(semicolonsym, 6);
 	getToken();
 }
 
 void statement()
 {
 	symbol *sym;
-	switch (curToken.type)
+	switch (token.type)
 	{
 	case identsym:
 		// Make sure that we only assign to variables
-		sym = fetchSymbol(curToken.name, op_var);
+		sym = fetchSymbol(token.name, o_var);
 		if (!sym)
 			throw(7);
 		getToken();
@@ -221,7 +208,7 @@ void statement()
 		getToken();
 		expect(identsym, 14);
 		// Make sure that we only call procedures
-		sym = fetchSymbol(curToken.name, op_proc);
+		sym = fetchSymbol(token.name, o_proc);
 		if (!sym)
 			throw(7);
 		getToken();
@@ -231,7 +218,7 @@ void statement()
 		{
 			getToken();
 			statement();
-		} while (curToken.type == semicolonsym);
+		} while (token.type == semicolonsym);
 		expect(endsym, 10);
 		getToken();
 		break;
@@ -241,7 +228,7 @@ void statement()
 		expect(thensym, 9);
 		getToken();
 		statement();
-		if (curToken.type == elsesym)
+		if (token.type == elsesym)
 		{
 			getToken();
 			statement();
@@ -258,7 +245,7 @@ void statement()
 		getToken();
 		expect(identsym, 14);
 		// Make sure to only read input into variables
-		sym = fetchSymbol(curToken.name, op_var);
+		sym = fetchSymbol(token.name, o_var);
 		if (!sym)
 			throw(7);
 		getToken();
@@ -267,7 +254,7 @@ void statement()
 		getToken();
 		expect(identsym, 2);
 		// Make sure to only write constants or variables to the screen
-		sym = fetchSymbol(curToken.name, op_const | op_var);
+		sym = fetchSymbol(token.name, o_const | o_var);
 		if (!sym)
 			throw(7);
 		getToken();
@@ -286,12 +273,12 @@ void condition()
 	token_type first[] = {oddsym, plussym, minussym, identsym,
 						  numbersym, lparentsym};
 	for (int i = 0; i < sizeof(first) / sizeof(*first); i++)
-		if (curToken.type == first[i])
+		if (token.type == first[i])
 			missing_condition = false;
 	if (missing_condition)
 		throw(11);
 
-	if (curToken.type == oddsym)
+	if (token.type == oddsym)
 	{
 		getToken();
 		expression();
@@ -301,7 +288,7 @@ void condition()
 		expression();
 		// Here we throw an error if there is no relational operator.
 		// The relational operators are from eqlsym to geqsym
-		if (curToken.type < eqlsym || curToken.type > geqsym)
+		if (token.type < eqlsym || token.type > geqsym)
 			throw(12);
 		getToken();
 		expression();
@@ -310,10 +297,10 @@ void condition()
 
 void expression()
 {
-	if (curToken.type == plussym || curToken.type == minussym)
+	if (token.type == plussym || token.type == minussym)
 		getToken();
 	term();
-	while (curToken.type == plussym || curToken.type == minussym)
+	while (token.type == plussym || token.type == minussym)
 	{
 		getToken();
 		term();
@@ -323,7 +310,7 @@ void expression()
 void term()
 {
 	factor();
-	while (curToken.type == multsym || curToken.type == slashsym || curToken.type == modsym)
+	while (token.type == multsym || token.type == slashsym || token.type == modsym)
 	{
 		getToken();
 		factor();
@@ -332,19 +319,19 @@ void term()
 
 void factor()
 {
-	if (curToken.type == identsym)
+	if (token.type == identsym)
 	{
 		// Only consts and vars are allowed in arithmetic expressions
-		symbol *sym = fetchSymbol(curToken.name, op_const | op_var);
+		symbol *sym = fetchSymbol(token.name, o_const | o_var);
 		if (!sym)
 			throw(7);
 		getToken();
 	}
-	else if (curToken.type == numbersym)
+	else if (token.type == numbersym)
 	{
 		getToken();
 	}
-	else if (curToken.type == lparentsym)
+	else if (token.type == lparentsym)
 	{
 		getToken();
 		expression();
@@ -353,57 +340,28 @@ void factor()
 	}
 	else
 	{
-		/*
-		 * XXX Not sure whether to throw an error here.
-		 * The recitation slide throws 'identifier, (, or number expected',
-		 * but that doesn't match any of the errors in the instructions.
-		 */
-		fprintf(stderr, "Here we are!");
+		// We shouldn't reach here
+		throw(11);
 	}
 }
 
 // Throws an error if the current token isn't of the expected type
 void expect(int token_type, int err)
 {
-	if (curToken.type != token_type)
+	if (token.type != token_type)
 		throw(err);
 }
 
-// Fetches the next token and assigns it to the global variable curToken
+// Fetches the next token and assigns it to the global variable token
 void getToken()
 {
 	static int tokenIndex = 0;
-	curToken = list[tokenIndex++];
+	token = list[tokenIndex++];
 }
 
 // Adds a symbol to the symbol table
-void addSymbol(char *name, int val, int type)
+void addSymbol(char *name, int val, int kind, int addr)
 {
-	/*
-	 * For a new entry to the symbol table,
-	 * we need the values for name, val, kind, and addr. 
-	 * We got name and val from arguments, and now 
-	 * we determine what kind and addr should be.
-	 */
-
-	int kind, addr; // addr stands for address
-
-	// Determine kind
-	if (type == constsym)
-		kind = constkind;
-	else if (type == varsym)
-		kind = varkind;
-	else
-		kind = prockind;
-
-	// Determine addr
-	if (kind == prockind || kind == constkind)
-		addr = 0;
-	else if (table[sym_index - 1].addr == 0)
-		addr = 3; // first symbol has offset 3
-	else
-		addr = table[sym_index - 1].addr + 1; // for normal variables
-
 	// Now, we add this symbol to the table
 	table[sym_index].addr = addr;
 	table[sym_index].kind = kind;
@@ -429,9 +387,11 @@ symbol *fetchSymbol(char *name, int kinds)
 		// ignore symbols whose names don't match what we want
 		if (strcmp(table[i].name, name) != 0)
 			continue;
+		// if the current symbol is of a requested kind, return it
 		if (kinds & (1 << table[i].kind))
 			return &table[i];
 	}
+	// at this point we didn't find the symbol
 	return NULL;
 }
 
@@ -447,14 +407,14 @@ bool conflictingSymbol(char *name, int kind)
 		// Run through the table
 		for (i = sym_index - 1; i != -1; i--)
 		{
-			// Only entries on our current level are valid
+			// Only entries on our current level cause conflicts
 			if (table[i].level != curLevel)
 				break;
 
 			// If it has the same name and kind == 1 or 2
 			if (strcmp(table[i].name, name) == 0 && kind == 1)
 				// Then yes, it conflicts
-				return 1;
+				return true;
 			else if (strcmp(table[i].name, name) == 0 && kind == 2)
 				// Then yes, it conflicts
 				return true;
@@ -465,7 +425,7 @@ bool conflictingSymbol(char *name, int kind)
 		// Run through the table
 		for (i = sym_index - 1; i != -1; i--)
 		{
-			// Only entries on our current level are valid
+			// Only entries on our current level cause conflicts
 			if (table[i].level != curLevel)
 				break;
 
