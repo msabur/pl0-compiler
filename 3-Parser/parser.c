@@ -203,6 +203,8 @@ void statement()
 		expect(becomessym, 2);
 		getToken();
 		expression();
+		if (token.type == lparentsym)
+			throw(2);
 		break;
 	case callsym:
 		getToken();
