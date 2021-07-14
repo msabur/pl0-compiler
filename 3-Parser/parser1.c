@@ -14,7 +14,7 @@
 
 
 symbol *table, *sym;
-symbol *fetch_symbol(char *name);
+symbol *fetch_symbol(char *name, int kind);
 lexeme *list, token, const_token;
 int list_index;
 int level;
@@ -32,7 +32,7 @@ void errorend(int x);
 void enter(int kind, char *name, int value);
 void address_checker(int kind);
 void is_valid(int token_type, int error_type);
-int conflicting_symbol(char *name);
+int conflicting_symbol(char *name, int kind);
 void get_token();
 void mark_symbols();
 
@@ -49,6 +49,26 @@ int rel_op();
 void expression();
 void term();
 void factor();
+
+
+/* Returns NULL if the symbol isn't found */
+symbol *fetch_symbol(char *name, int kind)
+{
+	for (int i = sym_index - 1; i != -1; i--)
+	{
+		// Ignore marked symbols
+		if (!table[i].mark)
+			continue;
+		
+		// Ignore symbols whose names don't match what we want
+		if (strcmp(table[i].name, name) != 0)
+			continue;
+		
+		if (kind & (1 << table[i].kind))
+			return &table[i];
+	}
+	return NULL;
+}
 
 
 /* Store a new symbol and its parameters into the Symbol Table */
@@ -93,16 +113,60 @@ void is_valid(int token_type, int error_type)
 
 
 /* Checks if a symbol was already declared in the current scope */
-int conflicting_symbol(char *name)
+int conflicting_symbol(char *name, int kind)
 {
-	for (int i = sym_index - 1; i != -1; i--)
+	int i;
+	// Switch for checking if it's a const, var, or proc
+	switch (kind)
 	{
-		if (table[i].level != level)
-			break;
+	case 1: // Constant
+	case 2: // Variable
+		// Run through the table
+		for (i = sym_index - 1; i != -1; i--)
+		{	
+			// Only entries on our current level are valid
+			if (table[i].level != level)
+				break;
 
-		if (strcmp(table[i].name, name) == 0)
-			return 1;
+			// If it has the same name and kind == 1 or 2
+			if (strcmp(table[i].name, name) == 0 && kind == 1)
+			{
+				// Then yes, it conflicts
+				error = 1;
+				return 1;
+			}
+			else if (strcmp(table[i].name, name) == 0 && kind == 2)
+			{
+				// Then yes, it conflicts
+				error = 1;
+				return 1;
+			}
+		}
+		break;
+
+	case 3: // Procedure
+		// Run through the table
+		for (i = sym_index - 1; i != -1; i--)
+		{
+			// Only entries on our current level are valid
+			if (table[i].level != level)
+				break;
+
+			// If it has the same name and kind == 3
+			if ((strcmp(table[i].name, name) == 0) && kind == 3)
+			{
+				// Then yes, it conflicts
+				error = 1;
+				return 1;
+			}
+		}
+		break;
+
+	default:
+		break;
 	}
+
+	// If it reaches here, it never conflicted, so return false (0)
 	return 0;
 }
 
@@ -125,10 +189,7 @@ void mark_symbols()
 
 	// Mark every symbol in the procedure
 	while (i != sym_index)
-	{
-		table[i].mark = 1;
-		i++;
-	}
+		table[i++].mark = 1;
 }
 
 
@@ -196,8 +257,8 @@ void const_declaration()
 		is_valid(numbersym, 5);
 
 		// Check for conflicting symbols
-		// Competing Symbol Declarations
-		if (conflicting_symbol(const_token.name))
+		// Parser Error: Competing Symbol Declarations
+		if (conflicting_symbol(const_token.name, 1))
 			errorend(1);
 
 		// Constants are a kind of 1
@@ -231,8 +292,8 @@ void var_declaration()
 		is_valid(identsym, 4);
 
 		// Check for conflicting symbols
-		// Competing Symbol Declarations
-		if (conflicting_symbol(token.name))
+		// Parser Error: Competing Symbol Declarations
+		if (conflicting_symbol(token.name, 2))
 			errorend(1);
 
 		// Variable is a kind of 2
@@ -272,7 +333,7 @@ void procedure_declaration()
 
 		// Check for conflicting symbols
 		// Competing Symbol Declarations
-		if (conflicting_symbol(token.name))
+		if (conflicting_symbol(token.name, 3))
 			errorend(1);
 
 		// Procedure is a kind of 3 and always has a value of 0.
@@ -378,7 +439,7 @@ void statement()
 		// call and read Must Be Followed By an Identifien
 		is_valid(identsym, 14);
 
-		sym = fetch_symbol(token.name);
+		sym = fetch_symbol(token.name, 4);
 
 		if (!sym || sym->kind != 2)
 			errorend(7);
@@ -392,7 +453,7 @@ void statement()
 		// Unrecognized Statement Form
 		is_valid(identsym, 2);
 
-		sym = fetch_symbol(token.name);
+		sym = fetch_symbol(token.name, 2 | 4);
 
 		if (!sym || (sym->kind != 2 && sym->kind != 1))
 			errorend(7);
@@ -513,19 +574,6 @@ void factor()
 }
 
 
-/* Returns NULL if the symbol isn't found */
-symbol *fetch_symbol(char *name)
-{
-	for (int i = sym_index - 1; i != -1; i--)
-	{
-		if (strcmp(table[i].name, name) == 0 && table[i].mark == 0)
-			return &table[i];
-	}
-
-	return NULL;
-}
-
-
 /* Main Parser */
 symbol *parse(lexeme *input)
 {
@@ -613,6 +661,9 @@ void errorend(int x)
 
 	// Set error to 1
 	error = 1;
+
+	free(table);
+	return NULL;
 }
 
 
