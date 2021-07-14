@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <setjmp.h>
 #include "compiler.h"
 
 
@@ -19,6 +20,13 @@ enum
 	op_var = 1 << 2,
 	op_proc = 1 << 3
 };
+
+
+/* Error Management */
+int error;
+jmp_buf env;
+#define catch() setjmp(env)
+#define throw(value) longjmp(env, error = value)
 
 
 symbol *table, *sym;
@@ -31,9 +39,8 @@ int sym_index;
 int error;
 
 
-/* Professor Provided Functions */
+/* Professor Provided Function */
 void printtable();
-void errorend(int x);
 
 
 /* Utility Functions */
@@ -43,6 +50,7 @@ void is_valid(int token_type, int error_type);
 int conflicting_symbol(char *name, int kind);
 void get_token();
 void mark_symbols();
+void printErrorMessage(int x);
 
 
 /* Parsing Functions */
@@ -121,7 +129,7 @@ void address_checker(int kind)
 void is_valid(int token_type, int error_type)
 {
 	if (token.type != token_type && error == 0)
-		errorend(error_type);
+		throw(error_type);
 }
 
 
@@ -279,7 +287,7 @@ void const_declaration()
 		// Check for conflicting symbols
 		// Parser Error: Competing Symbol Declarations
 		if (conflicting_symbol(const_token.name, 1))
-			errorend(1);
+			throw(1);
 
 		// Constants are a kind of 1
 		enter(1, const_token.name, const_token.value);
@@ -314,7 +322,7 @@ void var_declaration()
 		// Check for conflicting symbols
 		// Parser Error: Competing Symbol Declarations
 		if (conflicting_symbol(token.name, 2))
-			errorend(1);
+			throw(1);
 
 		// Variable is a kind of 2
 		// We don't declare the value of the variables,
@@ -353,7 +361,7 @@ void procedure_declaration()
 		// Check for conflicting symbols
 		// Competing Symbol Declarations
 		if (conflicting_symbol(token.name, 3))
-			errorend(1);
+			throw(1);
 
 		// Procedure is a kind of 3 and always has a value of 0.
 		enter(3, token.name, 0);
@@ -402,7 +410,7 @@ void statement()
 		// If it's not a variables, throw an error
 		// Parser Error: Undeclared Symbol
 		if (!sym)
-			errorend(7);
+			throw(7);
 
 		// This should hold :=
 		get_token();
@@ -418,7 +426,7 @@ void statement()
 
 		// Parser Error: Unrecognized Statement Form
 		if (token.type == lparentsym)
-			errorend(2);
+			throw(2);
 		break;
 
 	case callsym:
@@ -434,7 +442,7 @@ void statement()
 		// If it's not a procedure, throw an error
 		// Parser Error: Undeclared Symbol
 		if (!sym)
-			errorend(7);
+			throw(7);
 
 		// Move onto the next token to be processed
 		get_token();
@@ -520,7 +528,7 @@ void statement()
 		// Make sure we're reading a variable
 		// Parser Error: Undeclared Symbol
 		if (!sym)
-			errorend(7);
+			throw(7);
 
 		// Get the next token to be processed
 		get_token();
@@ -539,7 +547,7 @@ void statement()
 		// Make sure we're writing a constant or a variable
 		// Parser Error: Undeclared Symbol
 		if (!sym)
-			errorend(7);
+			throw(7);
 
 		// Get the next token to be processed
 		get_token();
@@ -570,7 +578,7 @@ void condition()
 		// Make sure it's a relation. If it isn't, throw an error
 		// Conditions Must Contain a Relational-Operator
 		if (!rel_op())
-			errorend(12);
+			throw(12);
 
 		// Get the first token of the expression
 		get_token();
@@ -665,7 +673,7 @@ void factor()
 		break;
 
 	default:
-		errorend(0); // Not sure what error this is
+		throw(0); // Not sure what error this is
 		break;
 	}
 }
@@ -684,8 +692,10 @@ symbol *parse(lexeme *input)
 	address = 0;
 	error = 0;
 
-	if (error)
+	if (catch() != 0)
 	{
+		// We jump here when an error is thrown
+		printErrorMessage(error);
 		free(table);
 		return NULL;
 	}
@@ -704,62 +714,30 @@ symbol *parse(lexeme *input)
 }
 
 
-/* Print the error */
-void errorend(int x)
+/* Print the error thrown */
+void printErrorMessage(int x)
 {
-	switch (x)
-	{
-		case 1:
-			printf("Parser Error: Competing Symbol Declarations\n");
-			break;
-		case 2:
-			printf("Parser Error: Unrecognized Statement Form\n");
-			break;
-		case 3:
-			printf("Parser Error: Programs Must Close with a Period\n");
-			break;
-		case 4:
-			printf("Parser Error: Symbols Must Be Declared with an Identifier\n");
-			break;
-		case 5:
-			printf("Parser Error: Constants Must Be Assigned a Value at Declaration\n");
-			break;
-		case 6:
-			printf("Parser Error: Symbol Declarations Must Be Followed By a Semicolon\n");
-			break;
-		case 7:
-			printf("Parser Error: Undeclared Symbol\n");
-			break;
-		case 8:
-			printf("Parser Error: while Must Be Followed By do\n");
-			break;
-		case 9:
-			printf("Parser Error: if Must Be Followed By then\n");
-			break;
-		case 10:
-			printf("Parser Error: begin Must Be Followed By end\n");
-			break;
-		case 11:
-			printf("Parser Error: while and if Statements Must Contain Conditions\n");
-			break;
-		case 12:
-			printf("Parser Error: Conditions Must Contain a Relational-Operator\n");
-			break;
-		case 13:
-			printf("Parser Error: ( Must Be Followed By )\n");
-			break;
-		case 14:
-			printf("Parser Error: call and read Must Be Followed By an Identifier\n");
-			break;
-		default:
-			printf("Implementation Error: Unrecognized Error Code\n");
-			break;
-	}
+	const char *errors[] =
+		{
+			[1] = "Competing Symbol Declarations",
+			[2] = "Unrecognized Statement Form",
+			[3] = "Programs Must Close with a Period",
+			[4] = "Symbols Must Be Declared with an Identifier",
+			[5] = "Constants Must Be Assigned a Value at Declaration",
+			[6] = "Symbol Declarations Must Be Followed By a Semicolon",
+			[7] = "Undeclared Symbol",
+			[8] = "while Must Be Followed By do",
+			[9] = "if Must Be Followed By then",
+			[10] = "begin Must Be Followed By end",
+			[11] = "while and if Statements Must Contain Conditions",
+			[12] = "Conditions Must Contain a Relational-Operator",
+			[13] = "( Must Be Followed By )",
+			[14] = "call and read Must Be Followed By an Identifier"};
 
-	// Set error to 1
-	error = 1;
-
-	return NULL;
+	if (x < 1 || x > 14)
+		printf("Implementation Error: Unrecognized Error Code\n");
+	else
+		printf("Parser Error: %s\n", errors[x]);
 }
 
 
