@@ -29,7 +29,7 @@ enum
 /* Error management */
 int error;
 jmp_buf env;
-#define catch () setjmp(env)
+#define catch() setjmp(env)
 #define throw(value) longjmp(env, error = value)
 
 symbol *table;
@@ -65,7 +65,7 @@ symbol *parse(lexeme *input)
 	table = malloc(1000 * sizeof(symbol));
 	list = input; // so we can access input from a global variable
 
-	if (catch () != 0)
+	if (catch() != 0)
 	{
 		// we jump here when an error is thrown
 		printErrorMessage(error);
