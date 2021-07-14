@@ -673,7 +673,7 @@ void factor()
 		break;
 
 	default:
-		throw(0); // Not sure what error this is
+		throw(11); // Not sure what error this is
 		break;
 	}
 }
