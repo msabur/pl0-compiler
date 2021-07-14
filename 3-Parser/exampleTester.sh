@@ -17,7 +17,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-make -f Makefile MAIN=$filename clean all
+make -f Makefile MAIN=$filename -B
 compiled=$?
 if [[ $compiled != 0 ]]; then
 	echo "does not compile"
