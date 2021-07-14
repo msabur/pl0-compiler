@@ -1,9 +1,13 @@
 CC=gcc
 CFLAGS=-g -Wall
 
-# our source files
-SRCS=lex.c driver.c parser.c
+# our primary source file
+MAIN=parser.c
 
+# our helper source files
+AUX=lex.c driver.c
+
+SRCS=$(MAIN) $(AUX)
 OBJS=$(SRCS:.c=.o)
 
 # name of generated executable

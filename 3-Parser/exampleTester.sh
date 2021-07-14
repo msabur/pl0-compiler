@@ -1,19 +1,23 @@
 #!/bin/bash
 
-# if a -v argument is supplied, it displays additional information
-if [[ $1 == "-v" ]]; then
-	show_diffs=true
+filename=parser.c
+
+# read args: -v to show diffs and -f to choose a file other than parser.c
+for arg in "$@"; do
 	shift
-else
-	show_diffs=false
-fi
+	case "$arg" in
+		"-v") show_diffs=true ;;
+		"-f") filename=$1; shift ;;
+		*)
+	esac
+done
 
 # special codes to change the color of text in terminal
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-make
+make -f Makefile MAIN=$filename clean all
 compiled=$?
 if [[ $compiled != 0 ]]; then
 	echo "does not compile"
