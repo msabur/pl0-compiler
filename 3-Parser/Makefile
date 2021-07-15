@@ -21,5 +21,5 @@ $(BIN): $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	$(RM) $(BIN) $(OBJS)
+	$(RM) $(BIN) *.o
 
