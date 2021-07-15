@@ -17,7 +17,7 @@
 // Symbol types
 const int constkind = 1, varkind = 2, prockind = 3;
 // Options for symbol table lookups
-const int op_const = 1 << 1, op_var = 1 << 2, op_proc = 1 << 3;
+const int op_const = 0x2, op_var = 0x4, op_proc = 0x8, op_sameScope = 0x10;
 
 /* Error management */
 int error;
@@ -108,7 +108,7 @@ void block()
 	if (token.type == varsym)
 		var_declaration();
 	
-	if (token.type == procsym)
+	while (token.type == procsym)
 		procedure_declaration();
 
 	statement();
@@ -204,7 +204,7 @@ void var_declaration()
 	} while (token.type == commasym);
 
 	// Otherwise we need semicolon to mark the end of the declaration
-	expect(semicolonsym, 6); // need ; at end of declaration
+	expect(semicolonsym, 6);
 	getToken();
 }
 
@@ -239,7 +239,7 @@ void procedure_declaration()
 	// Grab the next token so the block can process properly
 	getToken();
 
-	// Increase the lexicographical level for everything inside the procedure.
+	// Increase the level for everything inside the procedure.
 	level++;
 
 	// Parse the body of the procedure
@@ -564,6 +564,10 @@ symbol *fetchSymbol(char *name, int kinds)
 {
 	for (int i = sym_index - 1; i != -1; i--)
 	{
+		// If searching on the current scope only, stop when we leave it
+		if ((kinds & op_sameScope) && table[i].level != level)
+			break;
+
 		// Ignore marked symbols
 		if (table[i].mark)
 			continue;
@@ -582,43 +586,26 @@ symbol *fetchSymbol(char *name, int kinds)
 /* Checks if a symbol was already declared in the current scope */
 bool conflictingSymbol(char *name, int kind)
 {
-	int i;
+	symbol *sym;
 
 	// Switch for checking if it's a const, var, or proc
 	switch (kind)
 	{
 	case 1: // Constant
 	case 2: // Variable
-		// Run through the table
-		for (i = sym_index - 1; i != -1; i--)
-		{
-			// Only entries on our current level are valid
-			if (table[i].level != level)
-				break;
-
-			// If it has the same name and kind == 1 or 2
-			if (strcmp(table[i].name, name) == 0 && kind == 1)
-				// Then yes, it conflicts
-				return 1;
-			else if (strcmp(table[i].name, name) == 0 && kind == 2)
-				// Then yes, it conflicts
-				return true;
-		}
+		// Look for a const or var with the same name in the current scope
+		sym = fetchSymbol(name, op_const | op_var | op_sameScope);
+		// If we find it, then it conflicts
+		if (sym)
+			return true;
 		break;
 
 	case 3: // Procedure
-		// Run through the table
-		for (i = sym_index - 1; i != -1; i--)
-		{
-			// Only entries on our current level are valid
-			if (table[i].level != level)
-				break;
-
-			// If it has the same name and kind == 3
-			if ((strcmp(table[i].name, name) == 0) && kind == 3)
-				// Then yes, it conflicts
-				return true;
-		}
+		// Look for a const or var with the same name in the current scope
+		sym = fetchSymbol(name, op_proc | op_sameScope);
+		// If we find it, then it conflicts
+		if (sym)
+			return true;
 		break;
 
 	default:
