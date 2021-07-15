@@ -126,7 +126,9 @@ void word_processor(char *input)
 		// Throw an error if the string is longer than the max
 		// allowed length.
 		if (tmp_index > MAX_IDENT_LENGTH)
-			error_processor(4); // Excessive Identifier Length
+		{	error_processor(4); // Excessive Identifier Length
+			return;
+		}	
 	}
 
 	// End the string
@@ -187,7 +189,10 @@ void number_processor(char *input)
 		tmp[tmp_index++] = input[input_index++];
 
 	if (tmp_index > MAX_NUMBER_LENGTH)
+	{
 		error_processor(3); // Excessive Number Length
+		return;
+	}
 
 	// End the string
 	tmp[tmp_index] = '\0';
@@ -197,7 +202,9 @@ void number_processor(char *input)
 
 	// Checks to see if the next character is a letter
 	if (isalpha(input[input_index]))
+	{
 		error_processor(2); // Invalid Identifier
+	}
 
 	// Add the number symbol to the list along with the actual
 	// string of numbers, then increment the list index.
@@ -388,7 +395,9 @@ void symbol_processor(char *input)
 
 	// Check to see if an error should be thrown
 	if (symbol_type == -1)
+	{
 		error_processor(1); // Invalid Symbol
+	}
 
 	// Append symbol to the list
 	list[lex_index].type = symbol_type;
