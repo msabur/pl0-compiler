@@ -601,7 +601,7 @@ bool conflictingSymbol(char *name, int kind)
 		break;
 
 	case 3: // Procedure
-		// Look for a const or var with the same name in the current scope
+		// Look for a procedure with the same name in the current scope
 		sym = fetchSymbol(name, op_proc | op_sameScope);
 		// If we find it, then it conflicts
 		if (sym)
