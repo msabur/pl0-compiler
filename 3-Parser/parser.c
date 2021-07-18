@@ -41,7 +41,7 @@ void printErrorMessage(int x);
 void getToken();
 void expect(int token_type, int err);
 void addSymbol(char *name, int val, int kind, int address);
-symbol *fetchSymbol(char *name, int kinds);
+symbol *fetchSymbol(char *name, int options);
 void markSymbolsInScope();
 bool conflictingSymbol(char *name, int kind);
 
@@ -117,39 +117,35 @@ void block()
 /* Process a constant */
 void const_declaration()
 {
-	// Use ident to hold the name and value of the constant
+	// Will hold the name and value of the constant
 	lexeme ident;
 
 	// This token should have the constant name in it
 	getToken();
 
 	// If there's no name, throw an error
-	// Symbols Must Be Declared with an Identifier
 	expect(identsym, 4);
 
-	// Load the constant name into the ident
+	// Save the constant's information
 	ident = token;
 
 	// This token should have the := in it
 	getToken();
 
-	// Equals (":="")
-	// Constants Must Be Assigned a Value at Declaration
+	// Make sure the constant is assigned a value
 	expect(becomessym, 5);
 
 	// This token should have the value of the constant in it
 	getToken();
 
-	// Make sure there's a number it's being set equal to
-	// Constants Must Be Assigned a Value at Declaration
+	// Make sure the constant is assigned a value
 	expect(numbersym, 5);
 
-	// Load the constant value into the ident
+	// Save the constant's value
 	ident.value = token.value;
 
 	// Check for conflicting symbols
-	// Parser Error: Competing Symbol Declarations
-	if (conflictingSymbol(ident.name, 1))
+	if(fetchSymbol(ident.name, op_const | op_var | op_sameScope))
 		throw(1);
 	
 	// Add the constant to the symbol table
@@ -177,7 +173,7 @@ void var_declaration()
 {
 	int numVars = 0;
 	do {
-		// Use ident to hold the name and value of the variable
+		// Will hold the name and value of the variable
 		lexeme ident;
 
 		// This token should hold the name of the variable
@@ -186,11 +182,11 @@ void var_declaration()
 		// Symbols Must Be Declared with an Identifier
 		expect(identsym, 4);
 
-		// Fill ident with the variable's token information
+		// Save the variable's information
 		ident = token;
 
-		// We add it to the symbol table only if it wasn't already there
-		if (conflictingSymbol(ident.name, varkind))
+		// Check for conflicting symbols
+		if(fetchSymbol(ident.name, op_const | op_var | op_sameScope))
 			throw(1);
 
 		// Add the variable to the symbol table	
@@ -211,7 +207,7 @@ void var_declaration()
 /* Process a procedure */
 void procedure_declaration()
 {
-	// Use ident to hold the name and value of the procedure
+	// Will hold the name and value of the procedure
 	lexeme ident;
 
 	// This token should hold the name of the procedure
@@ -220,11 +216,11 @@ void procedure_declaration()
 	// Symbols Must Be Declared with an Identifier
 	expect(identsym, 4);
 
-	// Fill ident with the procedure's information
+	// Save the procedure's information
 	ident = token;
 
-	// We add it to the symbol table only if it wasn't already there
-	if (conflictingSymbol(ident.name, prockind))
+	// Check for conflicting symbols
+	if(fetchSymbol(ident.name, op_proc | op_sameScope))
 		throw(1);
 	
 	// Add the procedure to the symbol table
@@ -233,7 +229,7 @@ void procedure_declaration()
 	// This token should have a semicolon in it
 	getToken();
 
-	// Symbol Declarations Must Be Followed By a Semicolon
+	// Make sure the declaration is followed by ;
 	expect(semicolonsym, 6);
 
 	// Grab the next token so the block can process properly
@@ -252,7 +248,6 @@ void procedure_declaration()
 	level--;
 
 	// Check to make sure the whole thing ends with a ";"
-	// Symbol Declarations Must Be Followed By a Semicolon
 	expect(semicolonsym, 6);
 
 	// Grab the next token for processing
@@ -266,18 +261,15 @@ void statement()
 	switch (token.type)
 	{
 	case identsym:
-		// Make sure that we only assign to variables
 		sym = fetchSymbol(token.name, op_var);
-
-		// If it's not a variables, throw an error
-		// Parser Error: Undeclared Symbol
+		// If we don't find the variable, throw an error
 		if (!sym)
 			throw(7);
 		
 		// This should hold :=
 		getToken();
 
-		// Unrecognized Statement Form
+		// Assignment expressions require the := symbol
 		expect(becomessym, 2);
 		
 		// This should hold the first item in the expression
@@ -285,25 +277,17 @@ void statement()
 		
 		// Process the expression
 		expression();
-
-		// Parser Error: Unrecognized Statement Form
-		if (token.type == lparentsym)
-			throw(2);
-
 		break;
 	
 	case callsym:
 		// This should hold the name of a procedure
 		getToken();
 
-		// call and read Must Be Followed By an Identifien
+		// Make sure call is followed by an identifier
 		expect(identsym, 14);
 		
-		// Make sure that we only call procedures
 		sym = fetchSymbol(token.name, op_proc);
-
-		// If it's not a procedure, throw an error
-		// Parser Error: Undeclared Symbol
+		// If we don't find the procedure, throw an error
 		if (!sym)
 			throw(7);
 		
@@ -368,7 +352,6 @@ void statement()
 		condition();
 
 		// Make sure the next symbol is do
-		// while Must Be Followed By do
 		expect(dosym, 8);
 
 		// Get the first symbol of the statement inside the while
@@ -382,14 +365,11 @@ void statement()
 		// This should have an identity in it
 		getToken();
 
-		// call and read Must Be Followed By an Identifien
+		// Make sure read is followed by an identifier
 		expect(identsym, 14);
 
-		// Make sure to only read input into variables
 		sym = fetchSymbol(token.name, op_var);
-		
 		// Make sure we're reading a variable
-		// Parser Error: Undeclared Symbol
 		if (!sym)
 			throw(7);
 		
@@ -401,14 +381,11 @@ void statement()
 		// This should have an identity in it
 		getToken();
 
-		// Parser Error: Unrecognized Statement Form
+		// Make sure write is followed by an identifier
 		expect(identsym, 2);
 		
-		// Make sure to only write constants or variables to the screen
 		sym = fetchSymbol(token.name, op_const | op_var);
-
-		// Make sure we're writing a constant or a variable
-		// Parser Error: Undeclared Symbol
+		// Make sure to only write constants or variables to the screen
 		if (!sym)
 			throw(7);
 
@@ -439,7 +416,6 @@ void condition()
 
 		// Here we throw an error if there is no relational operator.
 		// The relational operators are from eqlsym to geqsym
-		// Conditions Must Contain a Relational-Operator
 		if (token.type < eqlsym || token.type > geqsym)
 			throw(12);
 		
@@ -489,11 +465,10 @@ void factor()
 {
 	if (token.type == identsym)
 	{
-		// Only consts and vars are allowed in arithmetic expressions
 		symbol *sym = fetchSymbol(token.name, op_const | op_var);
 
+		// Only consts and vars are allowed in arithmetic expressions.
 		// If it's not a constant or a variable, throw an error
-		// Parser Error: Undeclared Symbol
 		if (!sym)
 			throw(7);
 
@@ -514,7 +489,6 @@ void factor()
 		expression();
 
 		// Make sure to close the parentheses
-		// ( Must Be Followed By )
 		expect(rparentsym, 13);
 
 		// Get the next token to be processed
@@ -557,15 +531,17 @@ void addSymbol(char *name, int val, int kind, int address)
 }
 
 /* Returns the requested symbol, or NULL if it's not found.
- * The options parameter tells the kind of symbol to fetch.
- * If multiple results are found, the first one is returned.
+ * The options parameter specifies the kind of symbol to search for,
+ * and whether to only search in the current scope.
+ * Options can be combined with '|'
+ * Possible options: op_const, op_proc, op_var, op_sameScope
  */
-symbol *fetchSymbol(char *name, int kinds)
+symbol *fetchSymbol(char *name, int options)
 {
-	for (int i = sym_index - 1; i != -1; i--)
+	for (int i = sym_index - 1; i >= 0; i--)
 	{
-		// If searching on the current scope only, stop when we leave it
-		if ((kinds & op_sameScope) && table[i].level != level)
+		// If searching in the current scope only, stop when we leave it
+		if ((options & op_sameScope) && table[i].level != level)
 			break;
 
 		// Ignore marked symbols
@@ -577,43 +553,10 @@ symbol *fetchSymbol(char *name, int kinds)
 			continue;
 		
 		// If the current symbol is of a requested kind, return it
-		if (kinds & (1 << table[i].kind))
+		if (options & (1 << table[i].kind))
 			return &table[i];
 	}
 	return NULL;
-}
-
-/* Checks if a symbol was already declared in the current scope */
-bool conflictingSymbol(char *name, int kind)
-{
-	symbol *sym;
-
-	// Switch for checking if it's a const, var, or proc
-	switch (kind)
-	{
-	case 1: // Constant
-	case 2: // Variable
-		// Look for a const or var with the same name in the current scope
-		sym = fetchSymbol(name, op_const | op_var | op_sameScope);
-		// If we find it, then it conflicts
-		if (sym)
-			return true;
-		break;
-
-	case 3: // Procedure
-		// Look for a procedure with the same name in the current scope
-		sym = fetchSymbol(name, op_proc | op_sameScope);
-		// If we find it, then it conflicts
-		if (sym)
-			return true;
-		break;
-
-	default:
-		break;
-	}
-
-	// If it reaches here, it never conflicted, so return false
-	return false;
 }
 
 /* Marks symbols in the current scope before we exit it */
@@ -621,10 +564,6 @@ void markSymbolsInScope()
 {
 	for (int i = sym_index - 1; i != -1; i--)
 	{
-		// Should only be true when marking main
-		if (table[i].mark == 1)
-			continue;
-
 		// If it's done marking the current scope, break
 		if (table[i].level != level)
 			break;
