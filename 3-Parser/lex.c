@@ -99,6 +99,7 @@ int comment_processor(char *input, int first_loop)
 		input_index++;
 		comment_processor(input, 0);
 	}
+	return 0;
 }
 
 /* Process the invisible characters */

@@ -518,15 +518,9 @@ void getToken()
 /* Adds a symbol to the symbol table */
 void addSymbol(char *name, int val, int kind, int address)
 {
-	// Adding this symbol to the table
-	table[sym_index].addr = address;
-	table[sym_index].kind = kind;
-	table[sym_index].val = val;
-	table[sym_index].mark = 0;
-	table[sym_index].level = level;
+	table[sym_index] = (symbol) {kind, "", val, level, address};
 	strcpy(table[sym_index].name, name);
 
-	// Increment the index
 	sym_index++;
 }
 
