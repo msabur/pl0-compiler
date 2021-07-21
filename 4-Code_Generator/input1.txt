@@ -1,4 +1,0 @@
-var x;
-begin
-	x := x * 2 + 3;
-end.
