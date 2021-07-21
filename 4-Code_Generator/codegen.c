@@ -15,6 +15,11 @@ const int constkind = 1, varkind = 2, prockind = 3;
 const int op_const = 0x2, op_var = 0x4, op_proc = 0x8, op_sameScope = 0x10;
 instruction *code;
 
+enum Opcodes { LIT = 1, OPR, LOD, STO, CAL, INC, JMP, JPC, SYS };
+enum Oprcodes { RTN, NEG, ADD, SUB, MUL, DIV, ODD, MOD, EQL, NEQ, LSS,
+	LEQ, GTR, GEQ };
+enum Syscodes {WRT = 1, RED, HAL};
+
 int code_index, sym_index, level;
 
 symbol *table;
@@ -32,6 +37,7 @@ symbol *fetchSymbol(char *name, int options);
 void markSymbolsInScope();
 bool conflictingSymbol(char *name, int kind);
 void throw(int);
+void emit(int opr, int l, int m);
 
 /* Parsing Functions */
 void program();
@@ -50,7 +56,7 @@ instruction *generate_code(lexeme *tokens, symbol *symbols)
 	code = malloc(500 * sizeof(instruction));
 	code_index = 0;
 
-	table = symbols;
+	table = malloc(1000 * sizeof(*table));
 	list = tokens;
 
 	program();
@@ -73,6 +79,8 @@ void program()
 
 	// The program must end with a period
 	expect(periodsym, 3);
+
+	emit(SYS, 0, HAL);
 }
 
 /* Start other functions */
@@ -493,7 +501,10 @@ void getToken()
 /* Adds a symbol to the symbol table */
 void addSymbol(char *name, int val, int kind, int address)
 {
-	;
+	table[sym_index] = (symbol) {kind, "", val, level, address};
+	strcpy(table[sym_index].name, name);
+
+	sym_index++;
 }
 
 /* Returns the requested symbol, or NULL if it's not found.
@@ -528,11 +539,24 @@ symbol *fetchSymbol(char *name, int options)
 /* Marks symbols in the current scope before we exit it */
 void markSymbolsInScope()
 {
-	;
+	for (int i = sym_index - 1; i != -1; i--)
+	{
+		// If it's done marking the current scope, break
+		if (table[i].level != level)
+			break;
+		
+		// Mark the current symbol
+		table[i].mark = 1;
+	}
 }
 
 void throw(int err) {
 	;
+}
+
+void emit(int opr, int l, int m)
+{
+	code[code_index++] = (instruction) {opr, l, m};
 }
 
 void printcode()
