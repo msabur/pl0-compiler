@@ -425,8 +425,13 @@ void expression()
 	// the expression
 	while (token.type == plussym || token.type == minussym)
 	{
+		int operator = token.type;
 		getToken();
 		term();
+		if (operator == plussym)
+			emit(OPR, 0, ADD);
+		else if (operator == minussym)
+			emit(OPR, 0, SUB);
 	}
 }
 
@@ -439,8 +444,15 @@ void term()
 	// As long as the current token is * / or %, keep processing
 	while (token.type == multsym || token.type == slashsym || token.type == modsym)
 	{
+		int operator = token.type;
 		getToken();
 		factor();
+		if (operator == multsym)
+			emit(OPR, 0, MUL);
+		else if (operator == slashsym)
+			emit(OPR, 0, DIV);
+		else if (operator == modsym)
+			emit(OPR, 0, MOD);
 	}
 }
 
@@ -456,11 +468,19 @@ void factor()
 		if (!sym)
 			throw(7);
 
+		// instruction generation
+		if (sym->kind == constkind)
+			emit(LIT, 0, sym->val);
+		else if (sym->kind == varkind)
+			emit(LOD, level - sym->level, sym->addr);
+
 		// Get the next token to be processed
 		getToken();
 	}
 	else if (token.type == numbersym)
 	{
+		// instruction generation
+		emit(LIT, 0, token.value);
 		// Get the next token to be processed
 		getToken();
 	}
