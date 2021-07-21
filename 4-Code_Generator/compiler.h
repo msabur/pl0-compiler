@@ -26,5 +26,12 @@ typedef struct symbol {
 	int mark;
 } symbol;
 
+typedef struct instruction {
+	int opcode;
+	int l;
+	int m;
+} instruction;
+
 lexeme *lexanalyzer(char *input);
 symbol *parse(lexeme *input);
+instruction *generate_code(lexeme *tokens, symbol *symbols);

@@ -1,25 +1,15 @@
-CC=gcc
-CFLAGS=-g -Wall
+# to run in terminal $ make
+CC = gcc
 
-# our primary source file
-MAIN=parser.c
+# List all your .c (or .cpp or .cc) files here (source files, excluding header files)
+SRC_CODE = driver.c lex.o parser.o codegen.c
 
-# our helper source files
-AUX=lex.c driver.c
+#################################
 
-SRCS=$(MAIN) $(AUX)
-OBJS=$(SRCS:.c=.o)
+# default rule
 
-# name of generated executable
-BIN=a.out
+all: $(SRC_CODE)
+	$(CC) $(SRC_CODE) -lm
 
-.PHONY: all clean
 
-all:$(BIN)
-
-$(BIN): $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
-
-clean:
-	$(RM) $(BIN) *.o
 

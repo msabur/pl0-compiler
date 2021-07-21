@@ -14,11 +14,12 @@ int main(int argc, char **argv)
 	char c;
 	lexeme *list;
 	symbol *table;
+	instruction *code;
 	int i;
 	
 	if (argc < 2)
 	{
-		printf("Error : please include the file name\n");
+		printf("Error : please include the file name");
 		return 0;
 	}
 	
@@ -51,7 +52,11 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	
+	code = generate_code(list, table);
+	
 	free(list);
 	free(inputfile);
+	free(table);
+	free(code);
 	return 0;
 }
