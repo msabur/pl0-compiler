@@ -152,7 +152,7 @@ void const_declaration()
 	}
 }
 
-/* Process a constant */
+/* Process a variable */
 void var_declaration()
 {
 	int numVars = 0;
