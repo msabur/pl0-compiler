@@ -1,5 +1,5 @@
 Line	OP Code	OP Name	L	M
-0	7	JMP	0	1
+0	7	JMP	0	3
 1	6	INC	0	4
 2	3	LOD	0	3
 3	1	LIT	0	2
