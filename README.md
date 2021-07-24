@@ -4,8 +4,8 @@ UCF COP3402 project to make a PL/0 compiler
 
 # Authors:
 
-- Grant Allan
-- Maahee
+- <a href="https://github.com/Grant-Allan">Grant Allan</a>
+- <a href="https://github.com/msabur">Maahee Abdus Sabur</a>
 
 # Usage:
 
