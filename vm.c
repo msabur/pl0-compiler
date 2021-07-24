@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define PRINT_TRACE
+// #define PRINT_TRACE
 #define MAX_pas_LENGTH 500
 
 typedef struct instruction
