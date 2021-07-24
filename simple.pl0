@@ -1,0 +1,18 @@
+const ten := 10;
+var a, b, sum;
+procedure add;
+	procedure write10;
+		begin
+			write ten;
+		end;
+	begin
+		sum := a + b;
+		call write10;
+	end;
+
+begin
+	read a;
+	read b;
+	call add;
+	write sum;
+end.

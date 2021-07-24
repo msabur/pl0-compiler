@@ -1,0 +1,35 @@
+var n; /* how many fibonacci numbers to print */
+
+procedure printFibo;
+	var a, b, c;
+	begin
+		/* the first two fibonacci numbers */
+		a := 0;
+		b := 1;
+
+		if n > 0 then
+		begin
+			write a;
+			n := n - 1;
+		end;
+
+		if n > 0 then
+		begin
+			write b;
+			n := n - 1;
+		end;
+
+		while n > 0 do
+		begin
+			c := a + b;
+			write c;
+			a := b;
+			b := c;
+			n := n - 1;
+		end;
+	end;
+
+begin
+	read n;
+	call printFibo;
+end.
