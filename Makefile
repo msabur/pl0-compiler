@@ -1,20 +1,11 @@
-CC=gcc
-CFLAGS=-Wall -Wextra
-
-SRCS=lex.c parser.c compiler.c
-OBJS=$(SRCS:.c=.o)
+SOURCES=lex.c parser.c compiler.c
+OUTPUTS=compiler vm
 
 .PHONY: clean
 
-all: compiler vm .depend
+all: $(OUTPUTS)
 
-compiler: $(OBJS)
-
-# to recompile a file when one of its header files change
-.depend: $(SRCS)
-	$(CC) -MM $^ > $@
-
-include .depend
+compiler: $(SOURCES) compiler.h
 
 clean:
-	$(RM) compiler vm *.o output.pm0
+	$(RM) $(OUTPUTS) output.pm0
