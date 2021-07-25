@@ -1,3 +1,4 @@
+CFLAGS=-g
 SOURCES=lex.c parser.c compiler.c
 OUTPUTS=compiler vm
 

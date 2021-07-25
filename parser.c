@@ -102,7 +102,7 @@ void program()
 /* Start other functions */
 void block()
 {
-	int jmpIndex = codeIndex, space = 4;
+	int jmpIndex = codeIndex, space = 3;
 	emit(JMP, 0, 0);
 
 	if (token.type == constsym)
@@ -179,9 +179,8 @@ void const_declaration()
 /* Process a variable */
 int var_declaration()
 {
-	int numVars = -1;
+	int numVars = 0;
 	do {
-		numVars++;
 		// Will hold the name and value of the variable
 		lexeme ident;
 
@@ -200,6 +199,7 @@ int var_declaration()
 
 		// Add the variable to the symbol table	
 		addSymbol(ident.name, 0, varkind, numVars + 3);
+		numVars++;
 
 		// Get the next token to check it
 		getToken();
