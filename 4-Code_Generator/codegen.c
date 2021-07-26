@@ -216,7 +216,7 @@ void procedure_declaration()
 		throw(1);
 	
 	// Add the procedure to the symbol table
-	addSymbol(ident.name, 0, prockind, 0);
+	addSymbol(ident.name, 0, prockind, code_index);
 
 	// This token should have a semicolon in it
 	getToken();
