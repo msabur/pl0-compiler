@@ -192,6 +192,8 @@ int var_declaration()
 	// Otherwise we need semicolon to mark the end of the declaration
 	expect(semicolonsym, 6);
 	getToken();
+
+	return numVars;
 }
 
 /* Process a procedure */
