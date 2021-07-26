@@ -43,7 +43,7 @@ void emit(int opr, int l, int m);
 void program();
 void block();
 void const_declaration();
-void var_declaration();
+int var_declaration();
 void procedure_declaration();
 void statement();
 void condition();
@@ -86,14 +86,20 @@ void program()
 /* Start other functions */
 void block()
 {
+	int jmpIndex = code_index, space = 3;
+	emit(JMP, 0, 0);
+
 	if (token.type == constsym)
 		const_declaration();
 	
 	if (token.type == varsym)
-		var_declaration();
+		space += var_declaration();
 	
 	while (token.type == procsym)
 		procedure_declaration();
+
+	code[jmpIndex].m = code_index * 3;
+	emit(INC, 0, space);
 
 	statement();
 }
@@ -153,7 +159,7 @@ void const_declaration()
 }
 
 /* Process a variable */
-void var_declaration()
+int var_declaration()
 {
 	int numVars = 0;
 	do {
@@ -236,12 +242,15 @@ void procedure_declaration()
 
 	// Grab the next token for processing
 	getToken();
+
+	emit(OPR, 0, RTN);
 }
 
 /* Process a statement */
 void statement()
 {
 	symbol *sym;
+	int jmpIndex, jpcIndex;
 	switch (token.type)
 	{
 	case identsym:
@@ -261,6 +270,9 @@ void statement()
 		
 		// Process the expression
 		expression();
+
+		// The instruction to do the assignment
+		emit(STO, level - sym->level, sym->addr);
 		break;
 	
 	case callsym:
@@ -277,6 +289,8 @@ void statement()
 		
 		// Move onto the next token to be processed
 		getToken();
+
+		emit(CAL, level - sym->level, sym->addr * 3);
 		break;
 	
 	case beginsym:
@@ -307,6 +321,9 @@ void statement()
 		// Process the condition
 		condition();
 
+		jpcIndex = code_index;
+		emit(JPC, 0, 0);
+
 		// Make sure the next symbol is then
 		// if Must Be Followed By then
 		expect(thensym, 9);
@@ -323,14 +340,28 @@ void statement()
 			// Get the first token of the statement
 			getToken();
 
+			jmpIndex = code_index;
+			emit(JMP, 0, 0);
+			code[jpcIndex].m = code_index * 3;
+			
 			// Process the statement
 			statement();
+			
+			// The "else" block is skipped if the condition passes
+			code[jmpIndex].m = code_index * 3;
+		}
+		// If there is no "else", it jumps to the end on fail condition
+		else
+		{
+			code[jpcIndex].m = code_index * 3;
 		}
 		break;
 	
 	case whilesym:
 		// Get the first token of the condition
 		getToken();
+
+		jmpIndex = code_index;
 
 		// Process the condition
 		condition();
@@ -341,8 +372,16 @@ void statement()
 		// Get the first symbol of the statement inside the while
 		getToken();
 
+		jpcIndex = code_index;
+		emit(JPC, 0, 0);
+
 		// Process the statement
 		statement();
+		
+		// We recheck the condition after the loop
+		// We skip the loop if the condition is false
+		emit(JMP, 0, jmpIndex * 3);
+		code[jpcIndex].m = code_index * 3;
 		break;
 	
 	case readsym:
@@ -357,6 +396,10 @@ void statement()
 		if (!sym)
 			throw(7);
 		
+		// First we get the new value on top of the stack. Then we store it.
+		emit(SYS, 0, RED);
+		emit(STO, level - sym->level, sym->addr);
+
 		// Get the next token to be processed
 		getToken();
 		break;
@@ -372,6 +415,13 @@ void statement()
 		// Make sure to only write constants or variables to the screen
 		if (!sym)
 			throw(7);
+
+		// First we load the value on top of the stack. Then we write it.
+		if (sym->kind == varkind)
+			emit(LOD, level - sym->level, sym->addr);
+		else
+			emit(LIT, 0, sym->val);
+		emit(SYS, 0, WRT);
 
 		// Get the next token to be processed
 		getToken();
@@ -392,6 +442,8 @@ void condition()
 
 		// Process the expression
 		expression();
+
+		emit(OPR, 0, ODD);
 	}
 	else
 	{
@@ -403,11 +455,36 @@ void condition()
 		if (token.type < eqlsym || token.type > geqsym)
 			throw(12);
 		
+		int rel = token.type;
+
 		// Get the first token of the expression
 		getToken();
 
 		// Process the expression
 		expression();
+		// Process the expression
+		expression();
+		switch (rel)
+		{
+		case eqlsym:
+			emit(OPR, 0, EQL);
+			break;
+		case neqsym:
+			emit(OPR, 0, NEQ);
+			break;
+		case lessym:
+			emit(OPR, 0, LSS);
+			break;
+		case leqsym:
+			emit(OPR, 0, LEQ);
+			break;
+		case gtrsym:
+			emit(OPR, 0, GTR);
+			break;
+		case geqsym:
+			emit(OPR, 0, GEQ);
+			break;
+		}
 	}
 }
 
