@@ -455,6 +455,8 @@ void condition()
 		// Process the expression
 		expression();
 
+		int op = token.type;
+
 		// Get the first token of the expression
 		getToken();
 
@@ -464,7 +466,7 @@ void condition()
 		// Check to see which token it is and emit the
 		// corresponding operator
 		expression();
-		switch (token.type)
+		switch (op)
 		{
 		case eqlsym:
 			emit(OPR, 0, EQL);
