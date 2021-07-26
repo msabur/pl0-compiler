@@ -19,6 +19,9 @@ const int constkind = 1, varkind = 2, prockind = 3;
 const int op_const = 0x2, op_var = 0x4, op_proc = 0x8, op_sameScope = 0x10;
 instruction *code;
 
+// A boolean to check for whether or not to do the JMP in block()
+jmpCheck = 0;
+
 enum Opcodes
 {
 	LIT = 1,
@@ -123,7 +126,13 @@ void block()
 	int jmpIndex = code_index, INC_M;
 
 	// Add the first JMP, with 0 as a placeholder M value
-	emit(JMP, 0, 0);
+	// jmpCheck makes sure this only fires the very first
+	// time we enter block, for main.
+	if (jmpCheck = 0)
+	{
+		emit(JMP, 0, 0);
+		jmpCheck = 1;
+	}
 
 	if (token.type == constsym)
 		const_declaration();
@@ -423,7 +432,7 @@ void statement()
 		else
 			// If it's a constant, LIT with the value of it as M
 			emit(LIT, 0, sym->val);
-		
+
 		// Add SYS with M WRT to the code array
 		emit(SYS, 0, WRT);
 
@@ -505,7 +514,7 @@ void expression()
 	while (token.type == plussym || token.type == minussym)
 	{
 		// Use operator to store the token type
-		int operator = token.type;
+		int operator= token.type;
 
 		// Get the next token
 		getToken();
@@ -515,9 +524,9 @@ void expression()
 
 		// Check to see if the operator is a plus or a minus,
 		// then emit accordingly
-		if (operator == plussym)
+		if (operator== plussym)
 			emit(OPR, 0, ADD);
-		else if (operator == minussym)
+		else if (operator== minussym)
 			emit(OPR, 0, SUB);
 	}
 }
@@ -532,7 +541,7 @@ void term()
 	while (token.type == multsym || token.type == slashsym || token.type == modsym)
 	{
 		// Use operator to store the token type
-		int operator = token.type;
+		int operator= token.type;
 
 		// Get the next token
 		getToken();
@@ -542,11 +551,11 @@ void term()
 
 		// Check to see if the operator is a multiplication, division,
 		// or modulus symbol, and emit accordingly
-		if (operator == multsym)
+		if (operator== multsym)
 			emit(OPR, 0, MUL);
-		else if (operator == slashsym)
+		else if (operator== slashsym)
 			emit(OPR, 0, DIV);
-		else if (operator == modsym)
+		else if (operator== modsym)
 			emit(OPR, 0, MOD);
 	}
 }
