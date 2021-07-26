@@ -288,9 +288,6 @@ void statement()
 		// This should hold the name of a procedure
 		getToken();
 
-		// Make sure call is followed by an identifier
-		expect(identsym, 14);
-
 		// Get the prodecure from the symbol table
 		sym = fetchSymbol(token.name, op_proc);
 
