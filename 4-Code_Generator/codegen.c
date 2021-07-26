@@ -502,16 +502,21 @@ void condition()
 /* Process Plus and/or Minus */
 void expression()
 {
+	bool negativeNumber = false;
 	// If it's a plus or minus, move to the next token
 	if (token.type == plussym || token.type == minussym)
 	{
 		if(token.type == minussym) // negative number
-			emit(OPR, 0, NEG);
+			negativeNumber = true;
 		getToken();
 	}
 
 	// Process the term
 	term();
+
+	// Emit a negation if we had a negative sign before the number
+	if (negativeNumber)
+			emit(OPR, 0, NEG);
 
 	// As long as there's another plus or minus, keep processing
 	// the expression
