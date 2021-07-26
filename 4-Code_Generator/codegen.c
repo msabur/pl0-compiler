@@ -4,7 +4,7 @@
  * Homework #4 (PL/0 Compiler)
  * Authors: Maahee, Grant Allan
  * Due: 6/25/2021
-*/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -110,26 +110,35 @@ void program()
 	// This will be the main block. That is, the entire program.
 	block();
 
+	// Add the system halt to the end of the code array
 	emit(SYS, 0, HAL);
 }
 
 /* Start other functions */
 void block()
 {
-	int jmpIndex = code_index, space = 3;
+	// Use jmpIndex to track where JMP is so we can update
+	// it later. Use INC_M to track what value to give the M
+	// of INC
+	int jmpIndex = code_index, INC_M;
+
+	// Add the first JMP, with 0 as a placeholder M value
 	emit(JMP, 0, 0);
 
 	if (token.type == constsym)
 		const_declaration();
 
 	if (token.type == varsym)
-		space += var_declaration();
+		INC_M = 3 + var_declaration();
 
 	while (token.type == procsym)
 		procedure_declaration();
 
+	// Update the M value of the initial JMP
 	code[jmpIndex].m = code_index * 3;
-	emit(INC, 0, space);
+
+	// Add INC now that we're inside the procedure block
+	emit(INC, 0, INC_M);
 
 	statement();
 }
@@ -166,15 +175,15 @@ void const_declaration()
 		const_declaration();
 	// Otherwise we need semicolon to mark the end of the declaration
 	else
-	{
 		// Get the next token
 		getToken();
-	}
 }
 
 /* Process a variable */
 int var_declaration()
 {
+	// Create numVars to count how many variables appear
+	// in the procedure block
 	int numVars = 0;
 	do
 	{
@@ -188,6 +197,7 @@ int var_declaration()
 		ident = token;
 
 		// Add the variable to the symbol table
+		// Set the address using numVars
 		addSymbol(ident.name, 0, varkind, numVars + 3);
 		numVars++;
 
@@ -198,6 +208,7 @@ int var_declaration()
 	} while (token.type == commasym);
 	getToken();
 
+	// Return numVars to use in INC
 	return numVars;
 }
 
@@ -214,6 +225,8 @@ void procedure_declaration()
 	ident = token;
 
 	// Add the procedure to the symbol table
+	// We add code_index as the address so we can use it
+	// with CAL later on
 	addSymbol(ident.name, 0, prockind, code_index);
 
 	// This token should have a semicolon in it
@@ -237,6 +250,7 @@ void procedure_declaration()
 	// Grab the next token for processing
 	getToken();
 
+	// Add OPR with an M of RTN to the code array
 	emit(OPR, 0, RTN);
 }
 
@@ -244,10 +258,16 @@ void procedure_declaration()
 void statement()
 {
 	symbol *sym;
+
+	// Use jmpIndex and jpcIndex to track where the JMP and
+	// JPC are in the code array so we can update their M
+	// values later
 	int jmpIndex, jpcIndex;
+
 	switch (token.type)
 	{
 	case identsym:
+		// Get the variable from the symbol table
 		sym = fetchSymbol(token.name, op_var);
 
 		// This should hold :=
@@ -259,7 +279,8 @@ void statement()
 		// Process the expression
 		expression();
 
-		// The instruction to do the assignment
+		// Add STO to the code array, with the proper lexicographical
+		// level and the address of the variable
 		emit(STO, level - sym->level, sym->addr);
 		break;
 
@@ -270,11 +291,14 @@ void statement()
 		// Make sure call is followed by an identifier
 		expect(identsym, 14);
 
+		// Get the prodecure from the symbol table
 		sym = fetchSymbol(token.name, op_proc);
 
 		// Move onto the next token to be processed
 		getToken();
 
+		// Add CAL to the code array with the proper lexicographical
+		// level and the address of the procedure
 		emit(CAL, level - sym->level, sym->addr * 3);
 		break;
 
@@ -302,7 +326,10 @@ void statement()
 		// Process the condition
 		condition();
 
+		// Set the jpcIndex
 		jpcIndex = code_index;
+
+		// Add JPC to the code array with a placeholder M of 0
 		emit(JPC, 0, 0);
 
 		// Get the first symbol of the statement inside the if
@@ -317,8 +344,13 @@ void statement()
 			// Get the first token of the statement
 			getToken();
 
+			// Set the jmpIndex
 			jmpIndex = code_index;
+
+			// Add JMP to the index with a placeholder M of 0
 			emit(JMP, 0, 0);
+
+			// Update the JPC M value
 			code[jpcIndex].m = code_index * 3;
 
 			// Process the statement
@@ -330,6 +362,7 @@ void statement()
 		// If there is no "else", it jumps to the end on fail condition
 		else
 		{
+			// Update the JPC M value
 			code[jpcIndex].m = code_index * 3;
 		}
 		break;
@@ -338,6 +371,7 @@ void statement()
 		// Get the first token of the condition
 		getToken();
 
+		// Set the jmpIndex
 		jmpIndex = code_index;
 
 		// Process the condition
@@ -346,7 +380,10 @@ void statement()
 		// Get the first symbol of the statement inside the while
 		getToken();
 
+		// Set the jpcIndex
 		jpcIndex = code_index;
+
+		// Add JPC to the code array with a placeholder M of 0
 		emit(JPC, 0, 0);
 
 		// Process the statement
@@ -355,6 +392,8 @@ void statement()
 		// We recheck the condition after the loop
 		// We skip the loop if the condition is false
 		emit(JMP, 0, jmpIndex * 3);
+
+		// Update the JPC M value
 		code[jpcIndex].m = code_index * 3;
 		break;
 
@@ -362,6 +401,7 @@ void statement()
 		// This should have an identity in it
 		getToken();
 
+		// Get the variable from the symbol table
 		sym = fetchSymbol(token.name, op_var);
 
 		// First we get the new value on top of the stack. Then we store it.
@@ -376,14 +416,18 @@ void statement()
 		// This should have an identity in it
 		getToken();
 
+		// Fetch constant or variable to be written
 		sym = fetchSymbol(token.name, op_const | op_var);
 
 		// First we load the value on top of the stack. Then we write it.
 		if (sym->kind == varkind)
+			// If it's a variable, LOD with the proper level and address
 			emit(LOD, level - sym->level, sym->addr);
 		else
+			// If it's a constant, LIT with the value of it as M
 			emit(LIT, 0, sym->val);
 		
+		// Add SYS with M WRT to the code array
 		emit(SYS, 0, WRT);
 
 		// Get the next token to be processed
@@ -406,6 +450,7 @@ void condition()
 		// Process the expression
 		expression();
 
+		// Add OPR with M ODD to the code array
 		emit(OPR, 0, ODD);
 	}
 	else
@@ -413,16 +458,16 @@ void condition()
 		// Process the expression
 		expression();
 
-		int rel = token.type;
-
 		// Get the first token of the expression
 		getToken();
 
 		// Process the expression
 		expression();
-		// Process the expression
+
+		// Check to see which token it is and emit the
+		// corresponding operator
 		expression();
-		switch (rel)
+		switch (token.type)
 		{
 		case eqlsym:
 			emit(OPR, 0, EQL);
@@ -460,12 +505,20 @@ void expression()
 	// the expression
 	while (token.type == plussym || token.type == minussym)
 	{
-		int operator= token.type;
+		// Use operator to store the token type
+		int operator = token.type;
+
+		// Get the next token
 		getToken();
+
+		// Process the term
 		term();
-		if (operator== plussym)
+
+		// Check to see if the operator is a plus or a minus,
+		// then emit accordingly
+		if (operator == plussym)
 			emit(OPR, 0, ADD);
-		else if (operator== minussym)
+		else if (operator == minussym)
 			emit(OPR, 0, SUB);
 	}
 }
@@ -479,14 +532,22 @@ void term()
 	// As long as the current token is * / or %, keep processing
 	while (token.type == multsym || token.type == slashsym || token.type == modsym)
 	{
-		int operator= token.type;
+		// Use operator to store the token type
+		int operator = token.type;
+
+		// Get the next token
 		getToken();
-		factor();
-		if (operator== multsym)
+
+		// Process the term
+		term();
+
+		// Check to see if the operator is a multiplication, division,
+		// or modulus symbol, and emit accordingly
+		if (operator == multsym)
 			emit(OPR, 0, MUL);
-		else if (operator== slashsym)
+		else if (operator == slashsym)
 			emit(OPR, 0, DIV);
-		else if (operator== modsym)
+		else if (operator == modsym)
 			emit(OPR, 0, MOD);
 	}
 }
@@ -496,9 +557,11 @@ void factor()
 {
 	if (token.type == identsym)
 	{
+		// Fetch the constant or variable being processed from the
+		// symbol table.
 		symbol *sym = fetchSymbol(token.name, op_const | op_var);
 
-		// instruction generation
+		// Instruction generation
 		if (sym->kind == constkind)
 			emit(LIT, 0, sym->val);
 		else if (sym->kind == varkind)
@@ -509,8 +572,9 @@ void factor()
 	}
 	else if (token.type == numbersym)
 	{
-		// instruction generation
+		// Instruction generation
 		emit(LIT, 0, token.value);
+
 		// Get the next token to be processed
 		getToken();
 	}
@@ -586,11 +650,13 @@ void markSymbolsInScope()
 	}
 }
 
+/* Add the input to the code array as an instruction struct */
 void emit(int opr, int l, int m)
 {
 	code[code_index++] = (instruction){opr, l, m};
 }
 
+/* Print the list of instructions */
 void printcode()
 {
 	int i;
