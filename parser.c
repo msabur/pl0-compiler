@@ -119,6 +119,7 @@ void block()
 #endif
 	emit(INC, 0, space);
 
+	printf("%d\n", level);
 	statement();
 }
 
@@ -529,7 +530,11 @@ void expression()
 {
 	// If it's a plus or minus, move to the next token
 	if (token.type == plussym || token.type == minussym)
+	{
+		if(token.type == minussym)
+			emit(OPR, 0, NEG);
 		getToken();
+	}
 
 	// Process the term
 	term();

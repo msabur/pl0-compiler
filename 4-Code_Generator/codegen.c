@@ -19,9 +19,6 @@ const int constkind = 1, varkind = 2, prockind = 3;
 const int op_const = 0x2, op_var = 0x4, op_proc = 0x8, op_sameScope = 0x10;
 instruction *code;
 
-// A boolean to check for whether or not to do the JMP in block()
-jmpCheck = 0;
-
 enum Opcodes
 {
 	LIT = 1,
@@ -120,6 +117,8 @@ void program()
 /* Start other functions */
 void block()
 {
+	static int jmpCheck = 0;
+	bool wePutJMP = false;
 	// Use jmpIndex to track where JMP is so we can update
 	// it later. Use INC_M to track what value to give the M
 	// of INC
@@ -128,10 +127,11 @@ void block()
 	// Add the first JMP, with 0 as a placeholder M value
 	// jmpCheck makes sure this only fires the very first
 	// time we enter block, for main.
-	if (jmpCheck = 0)
+	if (jmpCheck == 0)
 	{
 		emit(JMP, 0, 0);
-		jmpCheck = 1;
+		jmpCheck++;
+		wePutJMP = true;
 	}
 
 	if (token.type == constsym)
@@ -143,8 +143,9 @@ void block()
 	while (token.type == procsym)
 		procedure_declaration();
 
-	// Update the M value of the initial JMP
-	code[jmpIndex].m = code_index * 3;
+	if (wePutJMP)
+		// Update the M value of the initial JMP
+		code[jmpIndex].m = code_index * 3;
 
 	// Add INC now that we're inside the procedure block
 	emit(INC, 0, INC_M);
@@ -474,7 +475,6 @@ void condition()
 
 		// Check to see which token it is and emit the
 		// corresponding operator
-		expression();
 		switch (op)
 		{
 		case eqlsym:
@@ -504,7 +504,11 @@ void expression()
 {
 	// If it's a plus or minus, move to the next token
 	if (token.type == plussym || token.type == minussym)
+	{
+		if(token.type == minussym) // negative number
+			emit(OPR, 0, NEG);
 		getToken();
+	}
 
 	// Process the term
 	term();
