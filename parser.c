@@ -10,9 +10,6 @@ Remaining emits: none
 #include <setjmp.h>
 #include "compiler.h"
 
-// Toggleable workaround for our VM where each instruction takes 3 spaces
-#define MULTIPLY_JUMP_INDEXES_BY_3
-
 /* Constants */
 // Symbol types
 const int constkind = 1, varkind = 2, prockind = 3;
@@ -112,14 +109,9 @@ void block()
 	while (token.type == procsym)
 		procedure_declaration();
 
-#ifdef MULTIPLY_JUMP_INDEXES_BY_3
 	code[jmpIndex].m = codeIndex * 3;
-#else
-	code[jmpIndex].m = codeIndex;
-#endif
 	emit(INC, 0, space);
 
-	printf("%d\n", level);
 	statement();
 }
 
@@ -310,11 +302,7 @@ void statement()
 
 		// Move onto the next token to be processed
 		getToken();
-#ifdef MULTIPLY_JUMP_INDEXES_BY_3
 		emit(CAL, level - sym->level, sym->addr * 3);
-#else
-		emit(CAL, level - sym->level, sym->addr);
-#endif
 		break;
 
 	case beginsym:
@@ -364,30 +352,18 @@ void statement()
 
 			jmpIndex = codeIndex;
 			emit(JMP, 0, 0);
-#ifdef MULTIPLY_JUMP_INDEXES_BY_3
 			code[jpcIndex].m = codeIndex * 3;
-#else
-			code[jpcIndex].m = codeIndex;
-#endif
 
 			// Process the statement
 			statement();
 
 			// The "else" block is skipped if the condition passes
-#ifdef MULTIPLY_JUMP_INDEXES_BY_3
 			code[jmpIndex].m = codeIndex * 3;
-#else
-			code[jmpIndex].m = codeIndex;
-#endif
 		}
 		// If there is no "else", it jumps to the end on fail condition
 		else
 		{
-#ifdef MULTIPLY_JUMP_INDEXES_BY_3
 			code[jpcIndex].m = codeIndex * 3;
-#else
-			code[jpcIndex].m = codeIndex;
-#endif
 		}
 		break;
 
@@ -414,13 +390,8 @@ void statement()
 
 		// We recheck the condition after the loop
 		// We skip the loop if the condition is false
-#ifdef MULTIPLY_JUMP_INDEXES_BY_3
 		emit(JMP, 0, jmpIndex * 3);
 		code[jpcIndex].m = codeIndex * 3;
-#else
-		emit(JMP, 0, jmpIndex);
-		code[jpcIndex].m = codeIndex;
-#endif
 		break;
 
 	case readsym:
@@ -528,16 +499,21 @@ void condition()
 /* Process Plus and/or Minus */
 void expression()
 {
+	bool isNegative = false;
 	// If it's a plus or minus, move to the next token
 	if (token.type == plussym || token.type == minussym)
 	{
 		if(token.type == minussym)
-			emit(OPR, 0, NEG);
+			isNegative = true;
 		getToken();
 	}
 
 	// Process the term
 	term();
+
+	// Negate the result if there was a negative sign
+	if (isNegative)
+		emit(OPR, 0, NEG);
 
 	// As long as there's another plus or minus, keep processing
 	// the expression
