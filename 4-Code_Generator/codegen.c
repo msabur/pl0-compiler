@@ -555,8 +555,8 @@ void term()
 		// Get the next token
 		getToken();
 
-		// Process the term
-		term();
+		// Process the factor
+		factor();
 
 		// Check to see if the operator is a multiplication, division,
 		// or modulus symbol, and emit accordingly
