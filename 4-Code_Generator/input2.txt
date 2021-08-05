@@ -1,0 +1,36 @@
+const x := 3;
+var y;
+procedure A;
+	var z;
+	begin
+		read z;
+		if z == x then
+			y := x * z + 4;
+		while odd z do
+			z := z % y;
+		read z;
+		if z >= 0 then
+			call A;
+	end;
+procedure B;
+	var w, x;
+	begin
+		w := x - y;
+		if w <= y then
+			w := (y * 13) / 10;
+		while y > w do
+			y := y - (w % x);
+		call A
+	end;
+begin
+	call B;
+	if y <> x then
+		y := -x
+	else
+		y := +x;
+	while y < 0 do
+		begin
+			write y;
+			y := y + 1;
+		end;
+end.

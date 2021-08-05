@@ -1,0 +1,12 @@
+const x:=4;
+var y;
+procedure h;
+	begin;
+	end;
+procedure f;
+	begin;
+	end;
+procedure G;
+	begin;
+	end;
+.

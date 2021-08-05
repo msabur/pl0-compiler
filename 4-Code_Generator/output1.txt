@@ -1,0 +1,10 @@
+Line	OP Code	OP Name	L	M
+0	7	JMP	0	3
+1	6	INC	0	4
+2	3	LOD	0	3
+3	1	LIT	0	2
+4	2	MUL	0	4
+5	1	LIT	0	3
+6	2	ADD	0	2
+7	4	STO	0	3
+8	9	HAL	0	3

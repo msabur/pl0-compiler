@@ -1,0 +1,36 @@
+Lexeme Table:
+lexeme		token type
+      const	29
+         ==	2
+        var	30
+         <>	3
+  procedure	31
+          <	4
+      begin	19
+          >	6
+        end	20
+         <=	5
+         if	21
+         >=	7
+       then	22
+          .	16
+       else	23
+          ;	17
+      while	24
+          (	13
+         do	25
+          )	14
+       call	26
+         :=	18
+       read	28
+          ,	15
+      write	27
+          +	11
+        124	33
+          -	12
+   jalapeno	32
+          *	9
+          /	10
+
+Token List:
+29 2 30 3 31 4 19 6 20 5 21 7 22 16 23 17 24 13 25 14 26 18 28 15 27 11 33 124 12 32 jalapeno 9 10 
