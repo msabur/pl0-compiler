@@ -26,7 +26,11 @@ enum Oprcodes {RTN, NEG, ADD, SUB, MUL, DIV, ODD, MOD, EQL, NEQ, LSS,
 	LEQ, GTR, GEQ};
 enum Syscodes {WRT = 1, RED, HAL};
 
-int codeIndex, sym_index, level;
+int codeIndex, sym_index;
+
+// level stores the current lexicographical level,
+// ARsize stores the size of the current activation record
+int level, ARsize[MAX_FILE_LEN];
 
 symbol *table;
 lexeme token, *list;
@@ -108,6 +112,7 @@ void block()
 	while (token.type == procsym)
 		procedure_declaration();
 
+	ARsize[level] = space;
 	code[jmpIndex].m = codeIndex * 3;
 	emit(INC, 0, space);
 
@@ -301,7 +306,32 @@ void statement()
 
 		// Move onto the next token to be processed
 		getToken();
+
+		// Deal with function arguments if there are any
+		if (token.type == lparentsym)
+		{
+			int i = 0, paramOffset = ARsize[level] + 4;
+			do
+			{
+				getToken();
+				expression();
+				// TODO expression result goes to 
+				emit(STO, 0, paramOffset + i);
+				i++;
+			} while (token.type == commasym);
+			// Make sure to close the parentheses
+			expect(rparentsym, 13);
+			getToken();
+		}
+
 		emit(CAL, level - sym->level, sym->addr * 3);
+		break;
+
+	case returnsym:
+		getToken();
+		expression();
+		emit(STO, 0, 0);
+		emit(OPR, 0, RTN);
 		break;
 
 	case beginsym:
@@ -579,6 +609,14 @@ void factor()
 
 		// Get the next token to be processed
 		getToken();
+	}
+	else if (token.type == callsym)
+	{
+		// Handle the function call
+		statement();
+
+		// Get the function's return value on top of the stack
+		emit(INC, 0, 1);
 	}
 	else
 	{

@@ -1,0 +1,18 @@
+var n;
+procedure fibonacci;
+	var input, a, b;
+	begin
+		if input <= 1 then return input
+		else begin
+			a := call fibonacci(input - 1);
+			b := call fibonacci(input - 2);
+			return a + b;
+		end;
+	end;
+
+begin
+	while 1 == 1 do begin
+		read n;
+		write call fibonacci(n);
+	end;
+end.
