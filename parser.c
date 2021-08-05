@@ -1,6 +1,5 @@
 /*
 Authors: Grant-Allan, msabur
-Remaining emits: none
 */
 
 #include <stdlib.h>
